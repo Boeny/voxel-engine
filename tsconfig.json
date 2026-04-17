@@ -4,11 +4,7 @@
     "experimentalDecorators": true,
     "useDefineForClassFields": false,
     "module": "ESNext",
-    "lib": [
-      "ES2022",
-      "DOM",
-      "DOM.Iterable"
-    ],
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
     "skipLibCheck": true,
     "moduleResolution": "bundler",
     "esModuleInterop": true,
@@ -21,6 +17,6 @@
     },
     "allowImportingTsExtensions": true,
     "noEmit": true,
-    "types": ["vitest/globals"]
+    "types": ["@react-three/fiber", "@react-three/drei", "vitest/globals"]
   }
 }
