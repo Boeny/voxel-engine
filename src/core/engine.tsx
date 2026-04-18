@@ -1,18 +1,21 @@
 import React, { useEffect, useRef } from 'react';
 
-import { PointerLockControls } from '@react-three/drei';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
 
 import { useStore } from '../store';
 
 import { GameLogic } from './logic';
 import { PlayerController } from './playerController';
+import { PointerLock } from './PointerLock';
+
+const MOUSE_SENSITIVITY = 0.002;
 
 const SceneSetup = () => {
   const { camera, scene } = useThree();
   const gameLogic = useRef<GameLogic | null>(null);
 
   useEffect(() => {
+    camera.rotation.order = 'YXZ'; // Allows proper FPS-like rotation without gimbal lock at poles
     // Make sure camera looks forward by default
     camera.rotation.set(0, 0, 0);
     gameLogic.current = new GameLogic(scene);
@@ -20,7 +23,7 @@ const SceneSetup = () => {
     return () => {
       gameLogic.current?.dispose();
     };
-  }, [camera.rotation, scene]);
+  }, [scene]);
 
   useFrame((state) => {
     if (useStore.getState().gameState === 'playing' && gameLogic.current) {
@@ -32,7 +35,6 @@ const SceneSetup = () => {
 };
 
 export const Engine: React.FC = () => {
-  const setGameState = useStore((state) => state.setGameState);
   const gameState = useStore((state) => state.gameState);
 
   return (
@@ -45,12 +47,8 @@ export const Engine: React.FC = () => {
         gl={{ logarithmicDepthBuffer: true, antialias: true }}
       >
         <SceneSetup />
+        <PointerLock sensitivity={MOUSE_SENSITIVITY} />
         {gameState === 'playing' && <PlayerController />}
-        <PointerLockControls
-          isLocked={gameState === 'playing'}
-          onUnlock={() => setGameState('paused')}
-          onLock={() => setGameState('playing')}
-        />
       </Canvas>
     </div>
   );
