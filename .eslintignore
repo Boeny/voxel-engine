@@ -5,3 +5,4 @@ build/
 jest.config.*
 vitest.config.*
 vite.config.*
+docs/

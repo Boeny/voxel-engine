@@ -1,4 +1,4 @@
-## Try it: https://boeny.github.io/voxel-engine
+## Try it here: https://boeny.github.io/voxel-engine
 
 ## Run Locally
 
