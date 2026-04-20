@@ -1,6 +1,13 @@
 import { useStore } from '../store';
 
-function Component({ showContinue, closeMenu, createNewMap }: { showContinue: boolean; closeMenu: () => void; createNewMap: () => void }) {
+type Props = {
+  showContinue: boolean;
+  closeMenu: () => void;
+  playNewMap: () => void;
+  createNewMap: () => void;
+}
+
+function Component({ showContinue, closeMenu, playNewMap, createNewMap }: Props) {
   return (
     <div className="absolute inset-0 flex items-center justify-center bg-gray-900/90 text-white z-50">
       <div className="flex flex-col space-y-4 w-64">
@@ -13,9 +20,18 @@ function Component({ showContinue, closeMenu, createNewMap }: { showContinue: bo
               closeMenu();
             }}
           >
-            Conitue
+            Continue
           </button>
         )}
+        <button
+          className="px-6 py-3 bg-blue-600 hover:bg-blue-500 rounded text-lg font-medium transition-colors"
+          onClick={(e) => {
+            e.stopPropagation();
+            playNewMap();
+          }}
+        >
+          Play
+        </button>
         <button
           className="px-6 py-3 bg-blue-600 hover:bg-blue-500 rounded text-lg font-medium transition-colors"
           onClick={(e) => {
@@ -31,12 +47,13 @@ function Component({ showContinue, closeMenu, createNewMap }: { showContinue: bo
 }
 
 export const MainMenu: React.FC = () => {
-  const { setGameState, createNewMap, gameState } = useStore();
+  const { setGameState, createNewMap, playNewMap, gameState } = useStore();
 
   return (
     <Component
       showContinue={gameState !== 'menu'}
       closeMenu={() => setGameState('playing')}
+      playNewMap={playNewMap}
       createNewMap={createNewMap}
     />
   );

@@ -18,6 +18,7 @@ const MOUSE_SENSITIVITY = 0.002;
 const SceneSetup = () => {
   const { camera, scene, gl } = useThree();
   const gameState = useStore((state) => state.gameState);
+  const controlType = useStore((state) => state.controlType);
 
   const gameLogic = useRef<GameLogic | null>(null);
   const playerController = useRef<PlayerController | null>(null);
@@ -33,9 +34,14 @@ const SceneSetup = () => {
 
     const cleanupKeyboardEvents = setupKeyboardEvents({
       keydown: (e) => {
-        const { gameState, setGameState } = useStore.getState();
-        if (e.code === 'Escape' && gameState === 'paused') {
-          setGameState('playing');
+        const state = useStore.getState();
+        if (e.code === 'Escape') {
+          if (state.gameState === 'paused') {
+            state.setGameState('playing');
+          }
+          if (state.gameState === 'playing' && state.controlType === 'editor') {
+            state.setGameState('paused');
+          }
         }
       },
     });
@@ -52,16 +58,17 @@ const SceneSetup = () => {
       cleanupKeyboardEvents();
       cleanupMouseEvents();
     };
-  }, [scene]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => {
     if (!pointerLock?.current || pointerLock.current.lockIsRequesting) {
       return;
     }
-    if (gameState === 'playing') {
+    if (gameState === 'playing' && controlType === 'fpv') {
       pointerLock.current.requestPointerLock(gl);
     }
-  }, [gameState, gl]);
+  }, [controlType, gameState, gl]);
 
   useFrame((state, delta) => {
     if (useStore.getState().gameState === 'playing') {

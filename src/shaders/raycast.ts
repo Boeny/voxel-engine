@@ -212,12 +212,16 @@ void main() {
     float mieD2 = mieD * mieD;
     float phaseMie = 3.0 / (8.0 * 3.14159) * ((1.0 - mieD2) * (1.0 + cosTheta2)) / ((2.0 + mieD2) * pow(1.0 + mieD2 - 2.0 * mieD * cosTheta, 1.5));
 
+    // Global sun visibility at the camera position
+    // Fades out from slightly below horizon (-0.15) to slightly above (0.05)
+    float localSunVisibility = smoothstep(-0.15, 0.05, dot(normalize(rayPos - uPlanetCenter), uSunDirection));
+
     vec3 atmosphereColor = (totalRayleigh * uRayleighBeta * phaseRayleigh + totalMie * uMieBeta * phaseMie) * uSunIntensity;
-    atmosphereColor *= uSkyBrightness; // Boost sky brightness for a vibrant blue
+    atmosphereColor *= uSkyBrightness * localSunVisibility;
 
     // Fake multiple scattering to prevent completely black horizon
     // It adds blueish ambient light where there's dense atmosphere
-    float fakeAmbient = clamp(rayleighOpticalDepth / 100000.0, 0.0, 1.0);
+    float fakeAmbient = clamp(rayleighOpticalDepth / 100000.0, 0.0, 1.0) * localSunVisibility;
     atmosphereColor += vec3(0.02, 0.05, 0.1) * fakeAmbient * uSunIntensity * uSkyBrightness;
 
     vec3 viewTransmittance = exp(-(uRayleighBeta * rayleighOpticalDepth + uMieBeta * mieOpticalDepth));

@@ -4,7 +4,7 @@ import { keys } from '@/events';
 
 const SPEED = 5; // m/s
 const GRAVITY = 10; // m/s2
-const JUMP_FORCE = 10;
+const JUMP_FORCE = 5;
 const PLAYER_HEIGHT = 2; // m
 
 export class PlayerController {
