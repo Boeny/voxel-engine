@@ -2,6 +2,8 @@ import React, { useEffect, useRef } from 'react';
 
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
 
+import { setupKeyboardEvents } from '@/events';
+
 import { useStore } from '../store';
 
 import { GameLogic } from './logic';
@@ -11,23 +13,58 @@ import { PointerLock } from './PointerLock';
 const MOUSE_SENSITIVITY = 0.002;
 
 const SceneSetup = () => {
-  const { camera, scene } = useThree();
+  const { camera, scene, gl } = useThree();
+  const gameState = useStore((state) => state.gameState);
+
   const gameLogic = useRef<GameLogic | null>(null);
+  const playerController = useRef<PlayerController | null>(null);
+  const pointerLock = useRef<PointerLock | null>(null);
 
   useEffect(() => {
     camera.rotation.order = 'YXZ'; // Allows proper FPS-like rotation without gimbal lock at poles
-    // Make sure camera looks forward by default
-    camera.rotation.set(0, 0, 0);
+    camera.rotation.set(0, 0, 0); // Camera looks forward by default
+
     gameLogic.current = new GameLogic(scene);
+    playerController.current = new PlayerController();
+    pointerLock.current = new PointerLock(MOUSE_SENSITIVITY);
+
+    const cleanupKeyboardEvents = setupKeyboardEvents({
+      keydown: (e) => {
+        const { gameState, setGameState } = useStore.getState();
+        if (e.code === 'Escape' && gameState === 'paused') {
+          setGameState('playing');
+        }
+      },
+    });
+    const cleanupMouseEvents = pointerLock.current.setupMouseEvents({
+      onPointerLockChange: (isLocked) => {
+        if (!isLocked) {
+          useStore.getState().setGameState('paused');
+        }
+      },
+    });
 
     return () => {
       gameLogic.current?.dispose();
+      cleanupKeyboardEvents();
+      cleanupMouseEvents();
     };
   }, [scene]);
 
-  useFrame((state) => {
-    if (useStore.getState().gameState === 'playing' && gameLogic.current) {
-      gameLogic.current.update(camera, state.clock.elapsedTime);
+  useEffect(() => {
+    if (!pointerLock?.current || pointerLock.current.lockIsRequesting) {
+      return;
+    }
+    if (gameState === 'playing') {
+      pointerLock.current.requestPointerLock(gl);
+    }
+  }, [gameState, gl]);
+
+  useFrame((state, delta) => {
+    if (useStore.getState().gameState === 'playing') {
+      playerController.current?.update(camera, delta);
+      pointerLock.current?.update(camera);
+      gameLogic.current?.update(camera, state.clock.elapsedTime);
     }
   });
 
@@ -35,8 +72,6 @@ const SceneSetup = () => {
 };
 
 export const Engine: React.FC = () => {
-  const gameState = useStore((state) => state.gameState);
-
   return (
     <div className="w-full h-full relative bg-black">
       <div className="absolute top-4 left-4 z-10 text-white font-mono text-sm pointer-events-none drop-shadow-md bg-black/30 p-2 rounded">
@@ -47,8 +82,6 @@ export const Engine: React.FC = () => {
         gl={{ logarithmicDepthBuffer: true, antialias: true }}
       >
         <SceneSetup />
-        <PointerLock sensitivity={MOUSE_SENSITIVITY} />
-        {gameState === 'playing' && <PlayerController />}
       </Canvas>
     </div>
   );

@@ -1,6 +1,3 @@
-import { useRef } from 'react';
-
-import { useFrame, useThree } from '@react-three/fiber';
 import * as THREE from 'three';
 
 import { keys } from '@/events';
@@ -8,14 +5,13 @@ import { keys } from '@/events';
 const SPEED = 5; // m/s
 const GRAVITY = 10; // m/s2
 const JUMP_FORCE = 10;
-const PLAYER_HEIGHT = 2;
+const PLAYER_HEIGHT = 2; // m
 
-export const PlayerController = () => {
-  const { camera } = useThree();
-  const velocity = useRef(new THREE.Vector3());
-  const isGrounded = useRef(true);
+export class PlayerController {
+  velocity = new THREE.Vector3();
+  isGrounded = true;
 
-  useFrame((_, delta) => {
+  update(camera: THREE.Camera, delta: number) {
     const forward = new THREE.Vector3(0, 0, -1).applyQuaternion(camera.quaternion);
     forward.y = 0;
     forward.normalize();
@@ -48,27 +44,25 @@ export const PlayerController = () => {
     }
 
     // Apply gravity
-    velocity.current.y -= GRAVITY * delta;
-    camera.position.y += velocity.current.y * delta;
+    this.velocity.y -= GRAVITY * delta;
+    camera.position.y += this.velocity.y * delta;
 
     // stop falling
     // there should be a function calculating terrain height at given x,z coordinates, but for now we just stop at y=0
     const terrainHeight = 0;
 
     if (camera.position.y <= terrainHeight + PLAYER_HEIGHT) {
-      isGrounded.current = true;
+      this.isGrounded = true;
       camera.position.y = terrainHeight + PLAYER_HEIGHT;
-      velocity.current.y = 0;
+      this.velocity.y = 0;
     } else {
-      isGrounded.current = false;
+      this.isGrounded = false;
     }
 
     // jump
-    if (keys['Space'] && isGrounded.current) {
-      isGrounded.current = false;
-      velocity.current.y += JUMP_FORCE;
+    if (keys['Space'] && this.isGrounded) {
+      this.isGrounded = false;
+      this.velocity.y += JUMP_FORCE;
     }
-  });
-
-  return null;
-};
+  }
+}

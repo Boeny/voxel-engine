@@ -1,82 +1,95 @@
-import { useEffect } from 'react';
+import { Camera, WebGLRenderer } from 'three';
 
-import { useFrame, useThree } from '@react-three/fiber';
-import { WebGLRenderer } from 'three';
+export class PointerLock {
+  lockIsRequesting = false;
+  xAngleLimit = Math.PI / 2;
+  mouseDelta = { x: 0, y: 0 };
 
-import { keys, mouseDelta, setupKeyboardEvents, setupMouseEvents } from '@/events';
-import { useStore } from '@/store';
+  // eslint-disable-next-line no-useless-constructor
+  constructor(private sensitivity: number) {}
 
-const lockIsRequesting = { value: false };
-const xAngleLimit = Math.PI / 2;
+  setupMouseEvents({ onPointerLockChange }: { onPointerLockChange: (isLocked: boolean) => void }) {
+    const previousMousePosition = { x: 0, y: 0 };
 
-async function requestPointerLock(renderer: WebGLRenderer) {
-  lockIsRequesting.value = true;
+    const onMouseDown = (e: MouseEvent) => {
+      previousMousePosition.x = e.clientX;
+      previousMousePosition.y = e.clientY;
+    };
 
-  try {
-    await renderer.domElement.requestPointerLock();
-    lockIsRequesting.value = false;
-  } catch (e) {
-    setTimeout(() => requestPointerLock(renderer), 100);
+    const onMouseMove = (e: MouseEvent) => {
+      let movementX = e.movementX || 0;
+      let movementY = e.movementY || 0;
+
+      if (document.pointerLockElement) {
+        this.mouseDelta.x += movementX;
+        this.mouseDelta.y += movementY;
+      } else {
+        movementX = e.clientX - previousMousePosition.x;
+        movementY = e.clientY - previousMousePosition.y;
+        onMouseDown(e);
+      }
+    };
+
+    const onTouchStart = (e: TouchEvent) => {
+      if (e.touches.length > 0) {
+        previousMousePosition.x = e.touches[0].clientX;
+        previousMousePosition.y = e.touches[0].clientY;
+      }
+    };
+
+    const onTouchMove = (e: TouchEvent) => {
+      if (e.touches.length > 0) {
+        const movementX = e.touches[0].clientX - previousMousePosition.x;
+        const movementY = e.touches[0].clientY - previousMousePosition.y;
+        onTouchStart(e);
+
+        this.mouseDelta.x += movementX * 2.0;
+        this.mouseDelta.y += movementY * 2.0;
+      }
+    };
+
+    document.addEventListener('mousedown', onMouseDown);
+    document.addEventListener('mousemove', onMouseMove);
+    document.addEventListener('touchstart', onTouchStart, { passive: false });
+    document.addEventListener('touchmove', onTouchMove, { passive: false });
+
+    const onPointerLockChangeHandler = () => {
+      onPointerLockChange(!!document.pointerLockElement);
+    };
+    document.addEventListener('pointerlockchange', onPointerLockChangeHandler);
+
+    return () => {
+      document.removeEventListener('mousedown', onMouseDown);
+      document.removeEventListener('mousemove', onMouseMove);
+      document.removeEventListener('touchstart', onTouchStart);
+      document.removeEventListener('touchmove', onTouchMove);
+      document.removeEventListener('pointerlockchange', onPointerLockChangeHandler);
+    };
   }
-}
 
-export function PointerLock({ sensitivity }: { sensitivity: number }) {
-  const { gl, camera } = useThree();
-  const gameState = useStore((state) => state.gameState);
-
-  useFrame(() => {
-    if (lockIsRequesting.value) {
+  update(camera: Camera) {
+    if (this.lockIsRequesting) {
       return;
     }
+
     // Camera rotation (6DOF local rotation)
-    if (mouseDelta.x !== 0 || mouseDelta.y !== 0) {
-      camera.rotation.y -= mouseDelta.x * sensitivity;
-      camera.rotation.x -= mouseDelta.y * sensitivity;
-      camera.rotation.x = Math.max(-xAngleLimit, Math.min(xAngleLimit, camera.rotation.x));
-      mouseDelta.x = 0;
-      mouseDelta.y = 0;
+    if (this.mouseDelta.x !== 0 || this.mouseDelta.y !== 0) {
+      camera.rotation.y -= this.mouseDelta.x * this.sensitivity;
+      camera.rotation.x -= this.mouseDelta.y * this.sensitivity;
+      camera.rotation.x = Math.max(-this.xAngleLimit, Math.min(this.xAngleLimit, camera.rotation.x));
+      this.mouseDelta.x = 0;
+      this.mouseDelta.y = 0;
     }
-  });
+  }
 
-  useEffect(() => {
-    // Setup global keyboard events, fill keys
-    const cleanupKeyboardEvents = setupKeyboardEvents({
-      keydown: () => {
-        const state = useStore.getState();
+  async requestPointerLock(renderer: WebGLRenderer) {
+    this.lockIsRequesting = true;
 
-        if (keys['Escape'] && state.gameState === 'paused') {
-          state.setGameState('playing');
-        }
-      },
-    });
-
-    return () => {
-      cleanupKeyboardEvents();
-    };
-  }, []);
-
-  useEffect(() => {
-    if (lockIsRequesting.value) {
-      return;
+    try {
+      await renderer.domElement.requestPointerLock();
+      this.lockIsRequesting = false;
+    } catch (e) {
+      setTimeout(() => this.requestPointerLock(renderer), 100);
     }
-    if (gameState === 'playing') {
-      requestPointerLock(gl);
-    }
-  }, [gameState, gl]);
-
-  useEffect(() => {
-    const cleanupMouseEvents = setupMouseEvents({
-      onPointerLockChange: (isLocked) => {
-        if (!isLocked) {
-          useStore.getState().setGameState('paused');
-        }
-      },
-    });
-
-    return () => {
-      cleanupMouseEvents();
-    };
-  });
-
-  return null;
+  }
 }
