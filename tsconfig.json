@@ -17,6 +17,6 @@
     },
     "allowImportingTsExtensions": true,
     "noEmit": true,
-    "types": ["@react-three/fiber", "@react-three/drei", "vitest/globals"]
+    "types": ["@react-three/fiber", "vitest/globals"]
   }
 }
