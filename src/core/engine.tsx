@@ -1,6 +1,7 @@
 import React, { useEffect, useRef } from 'react';
 
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
+import { Vector3 } from 'three';
 
 import { setupKeyboardEvents } from '@/events';
 
@@ -10,6 +11,8 @@ import { GameLogic } from './logic';
 import { PlayerController } from './playerController';
 import { PointerLock } from './PointerLock';
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+const GRAVITY_VECTOR = new Vector3(0, 1, 0);
 const MOUSE_SENSITIVITY = 0.002;
 
 const SceneSetup = () => {
@@ -75,7 +78,8 @@ export const Engine: React.FC = () => {
   return (
     <div className="w-full h-full relative bg-black">
       <div className="absolute top-4 left-4 z-10 text-white font-mono text-sm pointer-events-none drop-shadow-md bg-black/30 p-2 rounded">
-        UI
+        <div id="hud-altitude">Altitude: 0 m</div>
+        <div id="hud-speed">Speed: 0 m/s</div>
       </div>
       <Canvas
         camera={{ position: [0, 2, 0], fov: 75, far: 1e10, near: 0.1 }}

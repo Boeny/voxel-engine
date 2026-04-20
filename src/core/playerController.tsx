@@ -64,5 +64,27 @@ export class PlayerController {
       this.isGrounded = false;
       this.velocity.y += JUMP_FORCE;
     }
+    if (keys['KeyC']) {
+      this.velocity.y -= JUMP_FORCE;
+    }
+
+    // Update HUD
+    const currentSpeed = speed * SPEED;
+    const verticalSpeed = this.velocity.y;
+    const totalSpeed = Math.sqrt(currentSpeed * currentSpeed + verticalSpeed * verticalSpeed);
+
+    // The camera's local Y position is exactly its altitude above the spherical planet surface
+    // because the planet sphere is centered at (x, -R, z) relative to the camera.
+    const altitude = camera.position.y - PLAYER_HEIGHT;
+
+    const altEl = document.getElementById('hud-altitude');
+    const speedEl = document.getElementById('hud-speed');
+
+    if (altEl) {
+      altEl.innerText = `Altitude: ${altitude.toFixed(0)} m`;
+    }
+    if (speedEl) {
+      speedEl.innerText = `Speed: ${totalSpeed.toFixed(0)} m/s`;
+    }
   }
 }
