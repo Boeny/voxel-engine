@@ -9,7 +9,7 @@ import { useStore } from '../store';
 
 import { GameLogic } from './logic';
 import { PlayerController } from './playerController';
-import { PointerLock } from './PointerLock';
+import { PointerLock } from './pointerLock';
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 const GRAVITY_VECTOR = new Vector3(0, 1, 0);
@@ -35,6 +35,7 @@ const SceneSetup = () => {
     const cleanupKeyboardEvents = setupKeyboardEvents({
       keydown: (e) => {
         const state = useStore.getState();
+
         if (e.code === 'Escape') {
           if (state.gameState === 'paused') {
             state.setGameState('playing');
@@ -47,8 +48,10 @@ const SceneSetup = () => {
     });
     const cleanupMouseEvents = pointerLock.current.setupMouseEvents({
       onPointerLockChange: (isLocked) => {
-        if (!isLocked) {
-          useStore.getState().setGameState('paused');
+        const state = useStore.getState();
+
+        if (!isLocked && state.controlType === 'fpv') {
+          state.setGameState('paused');
         }
       },
     });
@@ -70,11 +73,13 @@ const SceneSetup = () => {
     }
   }, [controlType, gameState, gl]);
 
-  useFrame((state, delta) => {
-    if (useStore.getState().gameState === 'playing') {
+  useFrame((frameState, delta) => {
+    const state = useStore.getState();
+
+    if (state.gameState === 'playing') {
       playerController.current?.update(camera, delta);
       pointerLock.current?.update(camera);
-      gameLogic.current?.update(camera, state.clock.elapsedTime);
+      gameLogic.current?.update(camera, frameState.clock.elapsedTime);
     }
   });
 
