@@ -1,3 +1,5 @@
+## Try it: https://boeny.github.io/voxel-engine
+
 ## Run Locally
 
 **Prerequisites:** Node.js
