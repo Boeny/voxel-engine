@@ -124,7 +124,7 @@
     "no-dupe-keys": "error",
     "no-else-return": "error",
     "no-empty": "warn",
-    "@typescript-eslint/no-empty-function": "warn",
+    "@typescript-eslint/no-empty-function": "off",
     "no-multi-assign": "off",
     "no-multiple-empty-lines": ["warn", { "max": 1, "maxBOF": 0, "maxEOF": 1 }],
     "no-nested-ternary": "warn",
@@ -173,8 +173,8 @@
         "allowNamedExports": false
       }
     ],
-    "no-useless-constructor": "error",
-    "@typescript-eslint/no-useless-constructor": "error",
+    "no-useless-constructor": "off",
+    "@typescript-eslint/no-useless-constructor": "off",
     "no-var": "error",
     "prefer-const": "error",
     // "prefer-promise-reject-errors": "error",

@@ -166,7 +166,7 @@ void main() {
         float stepSize = distThroughAtmosphere / float(numSteps);
         vec3 samplePoint = rayPos + rayDir * (distToAtmosphere + stepSize * 0.5);
 
-        for (int i = 0; i < 16; i++) {
+        for (int i = 0; i < 1; i++) {
             float height = getAltitude(samplePoint);
             if (height < 0.0) height = 0.0;
 

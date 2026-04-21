@@ -8,13 +8,14 @@
     "dev": "vite",
     "build": "npm run predev && tsc -b && vite build",
     "github-pages": "npm run predev && tsc -b && vite build --outDir ./docs",
-    "lint": "eslint . --fix",
-    "format": "prettier --write .",
+    "lint": "eslint ./src --fix",
+    "format": "prettier --write ./src",
     "typecheck": "tsc --noEmit",
     "test": "vitest run"
   },
   "dependencies": {
     "@react-three/fiber": "9.6.0",
+    "leva": "0.10.1",
     "lucide-react": "1.8.0",
     "react": "19.2.5",
     "react-dom": "19.2.5",

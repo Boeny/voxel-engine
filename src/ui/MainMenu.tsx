@@ -5,7 +5,7 @@ type Props = {
   closeMenu: () => void;
   playNewMap: () => void;
   createNewMap: () => void;
-}
+};
 
 function Component({ showContinue, closeMenu, playNewMap, createNewMap }: Props) {
   return (
@@ -46,7 +46,7 @@ function Component({ showContinue, closeMenu, playNewMap, createNewMap }: Props)
   );
 }
 
-export const MainMenu: React.FC = () => {
+export const MainMenu = () => {
   const { setGameState, createNewMap, playNewMap, gameState } = useStore();
 
   return (
