@@ -19,6 +19,7 @@ uniform float uPlanetRadius;
 uniform float uAtmosphereRadius;
 uniform float uSkyBrightness;
 uniform mat3 uCosmicMatrix;
+uniform int atmSteps;
 
 uniform vec3 uRayleighBeta;
 uniform vec3 uMieBeta;
@@ -166,7 +167,7 @@ void main() {
         float stepSize = distThroughAtmosphere / float(numSteps);
         vec3 samplePoint = rayPos + rayDir * (distToAtmosphere + stepSize * 0.5);
 
-        for (int i = 0; i < 1; i++) {
+        for (int i = 0; i < atmSteps; i++) {
             float height = getAltitude(samplePoint);
             if (height < 0.0) height = 0.0;
 

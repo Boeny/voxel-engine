@@ -8,6 +8,7 @@ export const DEFAULT_SHADER = {
   uRayleighScaleHeight: 1440, // 8000
   uMieScaleHeight: 1400, // 5000
   uMiePreferredScatteringDirection: 1, // 0.8
+  atmSteps: 16,
 };
 export const DEFAULT_PLANET = {
   planetRadius: 6_371_000,
@@ -42,6 +43,7 @@ export class GameLogic {
         uSunIntensity: { value: this.shaderParams.uSunIntensity },
         uSkyBrightness: { value: this.shaderParams.uSkyBrightness },
         uCosmicMatrix: { value: new THREE.Matrix3() },
+        atmSteps: { value: this.shaderParams.atmSteps },
       },
       depthWrite: false,
       depthTest: false,

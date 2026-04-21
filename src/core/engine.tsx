@@ -87,6 +87,7 @@ const SceneSetup = () => {
           uRayleighScaleHeight: [1000, 20000],
           uMieScaleHeight: [1000, 20000],
           uMiePreferredScatteringDirection: [0, 0.99],
+          atmSteps: [1, 32, 1],
           reset: button(() => setShaderParams(DEFAULT_SHADER)),
         },
         (params) => gameLogic.current?.setShaderParams(params),
@@ -98,8 +99,8 @@ const SceneSetup = () => {
       getControlParams(
         DEFAULT_PLANET,
         {
-          planetRadius: [1_000_000, 6_371_000],
-          atmosphereHeight: [0, 100_000],
+          planetRadius: [1_000_000, 6_371_000, 1000],
+          atmosphereHeight: [0, 100_000, 1],
           planetRotationSpeed: [0, 1],
           axialTilt: [0, 1],
           reset: button(() => setPlanetParams(DEFAULT_PLANET)),

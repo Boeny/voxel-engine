@@ -43,12 +43,13 @@ export function getControlParams(
       const value = params[field];
 
       if (value instanceof Array) {
-        const [min, max] = value;
+        const [min, max, step] = value;
 
         result[field] = {
           value: defaulValues[field],
           min,
           max,
+          step: step || 0.1,
           onChange: (newValue) => update({ [field]: newValue }),
           transient: true,
         };
