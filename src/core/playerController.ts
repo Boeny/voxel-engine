@@ -19,8 +19,8 @@ export class PlayerController extends Controller<AppState> {
 
   // config
   speed = 5; // m/s
-  gravity = 10; // m/s2
-  jumpForce = 300;
+  gravity = 1; // m/s2
+  jumpForce = 0.25;
   playerHeight = 2; // m
 
   constructor(camera: Camera, getState: () => AppState) {
@@ -96,34 +96,40 @@ export class PlayerController extends Controller<AppState> {
       moveDir.sub(right);
     }
 
+    // Friction (constantForce) — always terminal velocity
+    this.velocity.x *= Math.pow(0.5, delta * 60);
+    this.velocity.z *= Math.pow(0.5, delta * 60);
+
+    // Acceleration (constantForce)
     if (moveDir.lengthSq() > 0) {
       moveDir.normalize().multiplyScalar(this.speed * delta);
-      this.velocity.add(moveDir);
-    } else {
-      this.velocity.multiplyScalar(Math.pow(0.5, delta * 60));
+      this.velocity.x += moveDir.x;
+      this.velocity.z += moveDir.z;
     }
 
-    // Apply gravity
     if (selectedObject) {
-      const vectorFromObject = sub(this.camera.position, selectedObject.position);
-      const normal = norm(vectorFromObject);
-
-      // jump
-      if (keys['Space'] && this.isGrounded) {
-        this.isGrounded = false;
-        this.velocity.add(mul(normal, this.jumpForce * delta));
-      }
+      let vectorFromObject = sub(this.camera.position, selectedObject.position);
+      let normal = norm(vectorFromObject);
 
       const gravityVector = mul(normal, -this.gravity * delta);
       this.velocity.add(gravityVector);
+
       this.camera.position.add(this.velocity);
+      vectorFromObject = sub(this.camera.position, selectedObject.position);
+      normal = norm(vectorFromObject);
 
       const distanceToCameraOnGround = selectedObject.radius + this.playerHeight;
-      this.isGrounded = vectorFromObject.length() < distanceToCameraOnGround;
+      this.isGrounded = vectorFromObject.length() <= distanceToCameraOnGround;
       if (this.isGrounded) {
         this.camera.position.copy(add(selectedObject.position, mul(normal, distanceToCameraOnGround)));
         const verticalVelocity = mul(normal, this.velocity.dot(normal));
-        this.velocity.sub(verticalVelocity);
+        this.velocity.sub(verticalVelocity); // horizontal velocity
+      }
+
+      // Jump (instantForce) — only if grounded, without delta
+      if (keys['Space'] && this.isGrounded) {
+        this.isGrounded = false;
+        this.velocity.add(mul(normal, this.jumpForce));
       }
     } else {
       this.isGrounded = false;

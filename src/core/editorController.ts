@@ -102,8 +102,8 @@ export class EditorController extends Controller<AppState> {
     }
 
     const vectorFromObject = sub(this.camera.position, selectedObject.position);
-    const distanceToObject = vectorFromObject.length();
-    const normal = norm(vectorFromObject);
+    let distanceToObject = vectorFromObject.length();
+    let normal = norm(vectorFromObject);
 
     // Effective distance used for scaling
     // If focus is planet center, scale with altitude
@@ -143,6 +143,9 @@ export class EditorController extends Controller<AppState> {
     if (moveDir.lengthSq() > 0) {
       moveDir.normalize().multiplyScalar(moveSpeed);
       this.camera.position.add(moveDir);
+      vectorFromObject.add(moveDir);
+      distanceToObject = vectorFromObject.length();
+      normal = norm(vectorFromObject);
     }
 
     // Left Drag -> Look around freely
@@ -164,6 +167,9 @@ export class EditorController extends Controller<AppState> {
       newVector.applyAxisAngle(camRight, angleX);
 
       this.camera.position.copy(selectedObject.position).add(newVector);
+      vectorFromObject.copy(newVector);
+      distanceToObject = vectorFromObject.length();
+      normal = norm(vectorFromObject);
 
       this.mouseDelta.x = 0;
       this.mouseDelta.y = 0;
@@ -181,12 +187,15 @@ export class EditorController extends Controller<AppState> {
       const newVector = vectorFromObject.clone().normalize().multiplyScalar(newDist);
       // Only apply if it doesn't push us into the planet (checked below)
       this.camera.position.copy(selectedObject.position).add(newVector);
+      vectorFromObject.copy(newVector);
+      distanceToObject = vectorFromObject.length();
+      normal = norm(vectorFromObject);
 
       this.wheelDelta = 0;
     }
 
-    const distanceToCameraOnGround = selectedObject.radius + 1;
-    this.isGrounded = distanceToObject < distanceToCameraOnGround;
+    const distanceToCameraOnGround = selectedObject.radius + 2;
+    this.isGrounded = distanceToObject <= distanceToCameraOnGround;
     if (this.isGrounded) {
       this.camera.position.copy(add(selectedObject.position, mul(normal, distanceToCameraOnGround)));
     }
