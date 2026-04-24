@@ -91,12 +91,14 @@ export function EditorHUD() {
       <div className="absolute top-4 left-4 z-10 text-white font-mono text-sm pointer-events-none drop-shadow-md bg-black/30 p-2 rounded">
         <div id="hud-altitude"></div>
         <div id="hud-grounded"></div>
+        <div id="hud-position"></div>
       </div>
     </>
   );
 }
 
-export function updateEditorHUD({ distanceToFocusPoint, isGrounded }: EditorHUDParams) {
+export function updateEditorHUD({ distanceToFocusPoint, isGrounded, cameraPosition: { x, y, z } }: EditorHUDParams) {
   document.getElementById('hud-altitude')!.innerText = `Altitude: ${getDistanceText(distanceToFocusPoint)}`;
   document.getElementById('hud-grounded')!.innerText = `Is Grounded: ${isGrounded}`;
+  document.getElementById('hud-position')!.innerText = `Position: (${x}, ${y}, ${z})`;
 }

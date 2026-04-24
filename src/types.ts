@@ -1,3 +1,5 @@
+import { Vector3 } from 'three';
+
 export type PlayerHUDParams = {
   speed: number;
   distanceToFocusPoint: number;
@@ -7,4 +9,5 @@ export type PlayerHUDParams = {
 export type EditorHUDParams = {
   distanceToFocusPoint: number;
   isGrounded: boolean;
+  cameraPosition: Vector3;
 };

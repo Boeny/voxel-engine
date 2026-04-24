@@ -205,6 +205,7 @@ export class EditorController extends Controller<AppState> {
     return {
       distanceToFocusPoint: this.getDistanceToObject(selectedObject),
       isGrounded: this.isGrounded,
+      cameraPosition: this.camera.position,
     };
   }
 }
