@@ -101,7 +101,7 @@ export class EditorController extends Controller<AppState> {
       return;
     }
 
-    const vectorFromObject = sub(this.camera.position, selectedObject.position);
+    let vectorFromObject = sub(this.camera.position, selectedObject.position);
     let distanceToObject = vectorFromObject.length();
     let normal = norm(vectorFromObject);
 
@@ -117,7 +117,6 @@ export class EditorController extends Controller<AppState> {
     // Local Movement (WASD)
     const forward = new Vector3(0, 0, -1).applyQuaternion(this.camera.quaternion);
     const right = new Vector3(1, 0, 0).applyQuaternion(this.camera.quaternion);
-    const up = normal;
 
     const moveDir = new Vector3();
 
@@ -133,6 +132,9 @@ export class EditorController extends Controller<AppState> {
     if (keys['KeyA']) {
       moveDir.sub(right);
     }
+
+    const up = this.camera.rotation;
+
     if (keys['Space']) {
       moveDir.add(up);
     }
@@ -140,21 +142,32 @@ export class EditorController extends Controller<AppState> {
       moveDir.sub(up);
     }
 
+    // Camera roll
+    if (keys['KeyQ']) {
+      this.camera.rotateZ(1.5 * delta);
+    }
+    if (keys['KeyE']) {
+      this.camera.rotateZ(-1.5 * delta);
+    }
+
     if (moveDir.lengthSq() > 0) {
       moveDir.normalize().multiplyScalar(moveSpeed);
       this.camera.position.add(moveDir);
-      vectorFromObject.add(moveDir);
+      vectorFromObject = sub(this.camera.position, selectedObject.position);
       distanceToObject = vectorFromObject.length();
       normal = norm(vectorFromObject);
     }
 
     // Left Drag -> Look around freely
+    // Use quaternion rotation to preserve roll (camera.rotation.z from Q/E)
     if (this.isLeftDragging && (this.mouseDelta.x !== 0 || this.mouseDelta.y !== 0)) {
-      this.camera.rotation.y -= this.mouseDelta.x * this.sensitivity;
-      this.camera.rotation.x -= this.mouseDelta.y * this.sensitivity;
+      this.camera.rotateY(-this.mouseDelta.x * this.sensitivity);
+      this.camera.rotateX(-this.mouseDelta.y * this.sensitivity);
 
       this.mouseDelta.x = 0;
       this.mouseDelta.y = 0;
+
+      return;
     }
 
     // Right Drag -> Orbit around focus point
@@ -162,17 +175,24 @@ export class EditorController extends Controller<AppState> {
       const angleY = -this.mouseDelta.x * this.sensitivity;
       const angleX = -this.mouseDelta.y * this.sensitivity;
 
+      // Rotate the existing offset vector by the per-frame delta (not absolute angles)
       const newVector = vectorFromObject.clone().applyAxisAngle(new Vector3(0, 1, 0), angleY);
       const camRight = new Vector3(1, 0, 0).applyQuaternion(this.camera.quaternion);
-      newVector.applyAxisAngle(camRight, angleX);
+      const candidate = newVector.clone().applyAxisAngle(camRight, angleX);
+
+      // Clamp vertical: don't let camera go within ~5° of poles (world Y) to avoid lookAt flip
+      const elevationFromPole = Math.acos(Math.min(1, Math.abs(candidate.clone().normalize().y)));
+      if (elevationFromPole > 0.09) {
+        newVector.copy(candidate);
+      }
 
       this.camera.position.copy(selectedObject.position).add(newVector);
-      vectorFromObject.copy(newVector);
-      distanceToObject = vectorFromObject.length();
-      normal = norm(vectorFromObject);
+      this.camera.lookAt(selectedObject.position);
 
       this.mouseDelta.x = 0;
       this.mouseDelta.y = 0;
+
+      return;
     }
 
     // Zooming to focus point (Mouse Wheel)
@@ -187,7 +207,7 @@ export class EditorController extends Controller<AppState> {
       const newVector = vectorFromObject.clone().normalize().multiplyScalar(newDist);
       // Only apply if it doesn't push us into the planet (checked below)
       this.camera.position.copy(selectedObject.position).add(newVector);
-      vectorFromObject.copy(newVector);
+      vectorFromObject = sub(this.camera.position, selectedObject.position);
       distanceToObject = vectorFromObject.length();
       normal = norm(vectorFromObject);
 
