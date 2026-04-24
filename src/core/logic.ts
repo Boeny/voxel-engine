@@ -1,4 +1,6 @@
-import { Camera, Matrix4, Mesh, PlaneGeometry, Scene, ShaderMaterial, Vector3 } from 'three';
+import { Camera, Matrix4, Mesh, PlaneGeometry, Scene, ShaderMaterial, TextureLoader, Vector3 } from 'three';
+
+import earthTextureUrl from '@/assets/earth.jpg';
 
 import { raycastFrag, raycastVert } from '../shaders/raycast';
 
@@ -68,6 +70,8 @@ export class GameLogic {
         uOzoneIntensity: { value: this.planet.ozoneIntensity },
         uOzoneCenterHeight: { value: this.planet.ozoneCenterHeight }, // Peaks
         uOzoneThickness: { value: this.planet.ozoneThickness }, // Spans
+
+        uEarthTexture: { value: null },
       },
       depthWrite: false,
       depthTest: false,
@@ -79,10 +83,10 @@ export class GameLogic {
     this.mesh.frustumCulled = false;
     this.mesh.renderOrder = 1000;
     this.scene.add(this.mesh);
-  }
 
-  getDistanceToPlanetCenter(): number {
-    return this.camera.position.distanceTo(this.planet.position);
+    new TextureLoader().load(earthTextureUrl, (texture) => {
+      this.raycastMaterial.uniforms.uEarthTexture.value = texture;
+    });
   }
 
   setShaderParams = (params: Record<string, any>) => {
@@ -102,10 +106,10 @@ export class GameLogic {
       this.planet.rotate(angleDelta);
 
       // Determine how much the planet "drags" the camera along with it.
-      const altitude = Math.max(0, this.getDistanceToPlanetCenter() - this.planet.radius);
+      const altitude = Math.max(0, this.camera.position.distanceTo(this.planet.position) - this.planet.radius);
 
       let dragFactor = 0;
-      if (altitude <= 2.1) {
+      if (altitude < 10_000) {
         // Ground friction: 100% synchronization with planet rotation
         dragFactor = 1.0;
       } else if (altitude < this.planet.atmosphereHeight) {
@@ -125,8 +129,8 @@ export class GameLogic {
         pos.applyAxisAngle(new Vector3(0, 1, 0), cameraAngleDelta);
         this.camera.position.copy(pivot).add(pos);
 
-        // Rotate camera yaw to turn WITH the planet
-        this.camera.rotation.y += cameraAngleDelta;
+        // Rotate camera yaw to turn WITH the planet (subtract: planet rotates CCW → texture moves CW → camera turns right)
+        this.camera.rotation.y -= cameraAngleDelta;
       }
     }
 

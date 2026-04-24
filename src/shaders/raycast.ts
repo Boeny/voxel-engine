@@ -9,6 +9,8 @@ void main() {
 export const raycastFrag = `
 precision highp float;
 
+#define PI 3.14159265359
+
 varying vec2 vNdc;
 uniform mat4 projectionMatrixInverse;
 uniform mat4 viewMatrixInverse;
@@ -33,6 +35,7 @@ uniform float uMieScaleHeight;
 uniform float uMiePreferredScatteringDirection;
 uniform float uSunIntensity;
 uniform float uAtmosphereRaymarchDistance;
+uniform sampler2D uEarthTexture;
 
 // A highly precise intersection for the planet to avoid float32 catastrophic cancellation
 vec2 intersectPlanetSphere(vec3 r0, vec3 rd, float sr) {
@@ -253,8 +256,6 @@ void main() {
             normal = -normal;
         }
 
-        float distanceFade = clamp(tGround / 500.0, 0.0, 1.0);
-
         // rotation
         vec3 localPos = hitPos - uPlanetCenter;
         float cA = cos(-uPlanetAngle);
@@ -264,11 +265,11 @@ void main() {
             localPos.x * sA + localPos.z * cA
         );
 
-        float rawChecker = mod(floor(rotXZ.x) + floor(rotXZ.y), 2.0);
-        float checker = mix(rawChecker, 0.5, distanceFade);
-
-        vec3 baseColor = !isUnderground ? vec3(0.25, 0.6, 0.15) : vec3(0.4, 0.25, 0.15); // Brighter green
-        vec3 groundColor = baseColor * (0.8 + 0.2 * checker);
+        // Spherical UV for equirectangular Earth texture
+        vec3 rotatedNormal = normalize(vec3(rotXZ.x, localPos.y, rotXZ.y));
+        float u = 0.5 + atan(rotatedNormal.z, rotatedNormal.x) / (2.0 * PI);
+        float v = acos(clamp(rotatedNormal.y, -1.0, 1.0)) / PI;
+        vec3 groundColor = texture2D(uEarthTexture, vec2(u, v)).rgb;
 
         float groundLightRayleigh = 0.0;
         float groundLightMie = 0.0;
