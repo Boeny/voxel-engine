@@ -19,10 +19,10 @@ export class EditorController extends Controller<AppState> {
   previousMousePosition = { x: 0, y: 0 };
   isGrounded = true;
 
-  constructor(camera: Camera, getState: () => AppState) {
+  constructor(camera: Camera, getState: () => AppState, planetCenter: Vector3) {
     super(camera, getState);
-    camera.position.set(0, 10_000_000, 0);
-    camera.lookAt(new Vector3());
+    camera.position.set(7_800_000, -5_500_000, 14_500_000);
+    camera.lookAt(planetCenter);
   }
 
   switchMenu() {
