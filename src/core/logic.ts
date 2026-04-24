@@ -54,6 +54,7 @@ export class GameLogic {
 
         uPlanetCenter: { value: this.planet.position },
         uPlanetRadius: { value: this.planet.radius },
+        uPlanetAxis: { value: this.planet.rotation },
 
         uAtmosphereRadius: { value: this.planet.radius + this.planet.atmosphereHeight },
         uRayleighBeta: { value: new Vector3(5.5e-6, 13.0e-6, 22.4e-6) },
@@ -126,7 +127,7 @@ export class GameLogic {
         // Rotate camera position around Y axis relative to pivot
         const pivot = this.planet.position; // TODO: rotate camera WITH the planet
         const pos = sub(this.camera.position, pivot);
-        pos.applyAxisAngle(new Vector3(0, 1, 0), cameraAngleDelta);
+        pos.applyAxisAngle(this.planet.rotation, cameraAngleDelta);
         this.camera.position.copy(pivot).add(pos);
 
         // Rotate camera yaw to turn WITH the planet (subtract: planet rotates CCW → texture moves CW → camera turns right)

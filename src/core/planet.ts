@@ -69,7 +69,7 @@ export class Planet extends SelectableObject {
   ) {
     super('planet');
     this.position = position;
-    this.rotation = rotation;
+    this.rotation = rotation.normalize();
     this.rotationSpeed = rotationSpeed;
 
     this.radius = radius;

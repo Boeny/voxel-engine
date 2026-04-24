@@ -35,6 +35,7 @@ uniform float uMieScaleHeight;
 uniform float uMiePreferredScatteringDirection;
 uniform float uSunIntensity;
 uniform float uAtmosphereRaymarchDistance;
+uniform vec3 uPlanetAxis;
 uniform sampler2D uEarthTexture;
 
 // A highly precise intersection for the planet to avoid float32 catastrophic cancellation
@@ -125,6 +126,13 @@ vec3 getSunDisk(float cosTheta) {
     vec3 sunRays = sunBaseColor * totalSunLight * uSunIntensity;
 
     return sunRays;
+}
+
+// Rodrigues rotation: rotate v around unit axis by angle
+vec3 rotateAround(vec3 v, vec3 axis, float angle) {
+    float c = cos(angle);
+    float s = sin(angle);
+    return v * c + cross(axis, v) * s + axis * dot(axis, v) * (1.0 - c);
 }
 
 void main() {
@@ -256,20 +264,22 @@ void main() {
             normal = -normal;
         }
 
-        // rotation
+        // Rotate hit point into planet-local frame using Rodrigues (supports any rotation axis)
         vec3 localPos = hitPos - uPlanetCenter;
-        float cA = cos(-uPlanetAngle);
-        float sA = sin(-uPlanetAngle);
-        vec2 rotXZ = vec2(
-            localPos.x * cA - localPos.z * sA,
-            localPos.x * sA + localPos.z * cA
-        );
+        vec3 rotatedNormal = normalize(rotateAround(localPos, uPlanetAxis, uPlanetAngle));
 
-        // Spherical UV for equirectangular Earth texture
-        vec3 rotatedNormal = normalize(vec3(rotXZ.x, localPos.y, rotXZ.y));
-        float u = 0.5 + atan(rotatedNormal.z, rotatedNormal.x) / (2.0 * PI);
-        float v = acos(clamp(rotatedNormal.y, -1.0, 1.0)) / PI;
-        vec3 groundColor = texture2D(uEarthTexture, vec2(u, v)).rgb;
+        // Equirectangular UV generalized for arbitrary rotation axis
+        // Latitude: angle from north pole (uPlanetAxis direction)
+        float cosLat = dot(rotatedNormal, uPlanetAxis);
+        float texV = acos(clamp(cosLat, -1.0, 1.0)) / PI;
+        // Longitude: angle in the plane perpendicular to uPlanetAxis
+        // Choose a stable reference direction (world X unless axis is near-parallel to it)
+        vec3 refDir = abs(uPlanetAxis.x) < 0.9 ? vec3(1.0, 0.0, 0.0) : vec3(0.0, 0.0, 1.0);
+        vec3 primeMeridian = normalize(refDir - uPlanetAxis * dot(refDir, uPlanetAxis));
+        vec3 eastDir = cross(primeMeridian, uPlanetAxis);
+        vec3 perpNormal = rotatedNormal - uPlanetAxis * cosLat;
+        float texU = 0.5 + atan(dot(perpNormal, eastDir), dot(perpNormal, primeMeridian)) / (2.0 * PI);
+        vec3 groundColor = texture2D(uEarthTexture, vec2(texU, texV)).rgb;
 
         float groundLightRayleigh = 0.0;
         float groundLightMie = 0.0;
