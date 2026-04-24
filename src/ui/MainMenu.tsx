@@ -5,9 +5,10 @@ type Props = {
   closeMenu: () => void;
   playNewMap: () => void;
   createNewMap: () => void;
+  exit: () => void;
 };
 
-function Component({ showContinue, closeMenu, playNewMap, createNewMap }: Props) {
+function Component({ showContinue, closeMenu, playNewMap, createNewMap, exit }: Props) {
   return (
     <div className="absolute inset-0 flex items-center justify-center bg-gray-900/90 text-white z-50">
       <div className="flex flex-col space-y-4 w-64">
@@ -41,6 +42,17 @@ function Component({ showContinue, closeMenu, playNewMap, createNewMap }: Props)
         >
           Create map
         </button>
+        {showContinue && (
+          <button
+            className="px-6 py-3 bg-red-600 hover:bg-red-500 rounded text-lg font-medium transition-colors"
+            onClick={(e) => {
+              e.stopPropagation();
+              exit();
+            }}
+          >
+            Exit
+          </button>
+        )}
       </div>
     </div>
   );
@@ -51,6 +63,7 @@ export const MainMenu = () => {
   const playNewMap = useStore((state) => state.playNewMap);
   const createNewMap = useStore((state) => state.createNewMap);
   const setGameState = useStore((state) => state.setGameState);
+  const setAppState = useStore((state) => state.setAppState);
 
   return (
     <Component
@@ -58,6 +71,7 @@ export const MainMenu = () => {
       closeMenu={() => setGameState('playing')}
       playNewMap={playNewMap}
       createNewMap={createNewMap}
+      exit={() => setAppState('start')}
     />
   );
 };
