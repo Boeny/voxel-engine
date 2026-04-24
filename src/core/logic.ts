@@ -18,12 +18,12 @@ export class GameLogic {
     private camera: Camera,
     private scene: Scene,
   ) {
-    this.star = new Star({ intensity: 5, position: new Vector3(), radius: 0, angle: 90 }, this.setShaderParams); // TODO: apply real position and radius
+    this.star = new Star({ intensity: 5, position: new Vector3(), radius: 0, angle: 0 }, this.setShaderParams); // TODO: apply real position and radius
     this.planet = new Planet(
       {
         position: new Vector3(0, -6_371_000, 0),
         radius: 6_371_000,
-        rotation: new Vector3(),
+        rotation: new Vector3(Math.sin(0.41), Math.cos(0.41), 0), // TODO: make real angle
         rotationSpeed: 0.05,
         angle: 0.0,
         atmosphere: {
