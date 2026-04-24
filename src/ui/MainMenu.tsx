@@ -47,11 +47,14 @@ function Component({ showContinue, closeMenu, playNewMap, createNewMap }: Props)
 }
 
 export const MainMenu = () => {
-  const { setGameState, createNewMap, playNewMap, gameState } = useStore();
+  const appState = useStore((state) => state.appState);
+  const playNewMap = useStore((state) => state.playNewMap);
+  const createNewMap = useStore((state) => state.createNewMap);
+  const setGameState = useStore((state) => state.setGameState);
 
   return (
     <Component
-      showContinue={gameState !== 'menu'}
+      showContinue={appState === 'scene'}
       closeMenu={() => setGameState('playing')}
       playNewMap={playNewMap}
       createNewMap={createNewMap}

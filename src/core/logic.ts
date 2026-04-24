@@ -1,60 +1,88 @@
-import * as THREE from 'three';
+import { Camera, Matrix4, Mesh, PlaneGeometry, Scene, ShaderMaterial, Vector3 } from 'three';
 
 import { raycastFrag, raycastVert } from '../shaders/raycast';
 
-export const DEFAULT_SHADER = {
-  uSunIntensity: 5, // 5
-  uSkyBrightness: 50.0, // 10
-  uRayleighScaleHeight: 1440, // 8000
-  uMieScaleHeight: 1400, // 5000
-  uMiePreferredScatteringDirection: 1, // 0.8
-  atmSteps: 16,
-};
-export const DEFAULT_PLANET = {
-  planetRadius: 6_371_000,
-  atmosphereHeight: 100_000,
-  planetRotationSpeed: 0.05,
-  axialTilt: 0.3,
-};
+import { Planet } from './planet';
+import { Star } from './star';
+import { getSunDirection, sub } from './utils';
 
 export class GameLogic {
-  private raycastMaterial: THREE.ShaderMaterial;
-  private mesh: THREE.Mesh;
+  private raycastMaterial: ShaderMaterial;
+  private mesh: Mesh;
+  public planet: Planet;
+  public star: Star;
 
-  shaderParams = DEFAULT_SHADER;
-  planetParams = DEFAULT_PLANET;
+  constructor(
+    private camera: Camera,
+    private scene: Scene,
+  ) {
+    this.star = new Star({ intensity: 5, position: new Vector3(), radius: 0, angle: 0 }, this.setShaderParams); // TODO: apply real position and radius
+    this.planet = new Planet(
+      {
+        position: new Vector3(0, -6_371_000, 0),
+        radius: 6_371_000,
+        rotation: new Vector3(),
+        rotationSpeed: 0.05,
+        angle: 0.0,
+        atmosphere: {
+          height: 100_000,
+          rayleighScaleHeight: 1400,
+          mieScaleHeight: 1400,
+          miePreferredScatteringDirection: 1.0,
+          raymarchStepsCount: 16,
+          raymarchDistance: 10,
+          skyBrightness: 50.0,
+          ozoneIntensity: 0.5,
+          ozoneCenterHeight: 25000,
+          ozoneThickness: 15000,
+        },
+      },
+      this.setShaderParams,
+    );
 
-  constructor(private scene: THREE.Scene) {
-    this.raycastMaterial = new THREE.ShaderMaterial({
+    this.raycastMaterial = new ShaderMaterial({
       vertexShader: raycastVert,
       fragmentShader: raycastFrag,
       uniforms: {
-        projectionMatrixInverse: { value: new THREE.Matrix4() },
-        viewMatrixInverse: { value: new THREE.Matrix4() },
-        uSunDirection: { value: new THREE.Vector3(1, 1, 0.5).normalize() },
-        uPlanetCenter: { value: new THREE.Vector3(0, -this.planetParams.planetRadius, 0) },
-        uPlanetRadius: { value: this.planetParams.planetRadius },
-        uAtmosphereRadius: { value: this.planetParams.planetRadius + this.planetParams.atmosphereHeight },
-        uRayleighBeta: { value: new THREE.Vector3(5.5e-6, 13.0e-6, 22.4e-6) },
-        uMieBeta: { value: new THREE.Vector3(21e-6, 21e-6, 21e-6) },
-        uRayleighScaleHeight: { value: this.shaderParams.uRayleighScaleHeight }, // Density falloff for blue sky: 25% of atmosphere thickness (standart)
-        uMieScaleHeight: { value: this.shaderParams.uMieScaleHeight }, // Density falloff for sun halo: 5% of atmosphere thickness
-        uMiePreferredScatteringDirection: { value: this.shaderParams.uMiePreferredScatteringDirection },
-        uSunIntensity: { value: this.shaderParams.uSunIntensity },
-        uSkyBrightness: { value: this.shaderParams.uSkyBrightness },
-        uCosmicMatrix: { value: new THREE.Matrix3() },
-        atmSteps: { value: this.shaderParams.atmSteps },
+        projectionMatrixInverse: { value: new Matrix4() },
+        viewMatrixInverse: { value: new Matrix4() },
+
+        uSunIntensity: { value: this.star.intensity },
+        uSunDirection: { value: getSunDirection(this.star.angle) },
+
+        uPlanetCenter: { value: this.planet.position },
+        uPlanetRadius: { value: this.planet.radius },
+
+        uAtmosphereRadius: { value: this.planet.radius + this.planet.atmosphereHeight },
+        uRayleighBeta: { value: new Vector3(5.5e-6, 13.0e-6, 22.4e-6) },
+        uMieBeta: { value: new Vector3(21e-6, 21e-6, 21e-6) },
+        uRayleighScaleHeight: { value: this.planet.atmosphereRayleighScaleHeight }, // Density falloff for blue sky: 25% of atmosphere thickness (standart)
+        uMieScaleHeight: { value: this.planet.atmosphereMieScaleHeight }, // Density falloff for sun halo: 5% of atmosphere thickness
+        uMiePreferredScatteringDirection: { value: this.planet.atmosphereMiePreferredScatteringDirection },
+        uSkyBrightness: { value: this.planet.skyBrightness },
+        atmSteps: { value: this.planet.atmosphereRaymarchStepsCount },
+        uPlanetAngle: { value: this.planet.angle },
+        uAtmosphereRaymarchDistance: { value: this.planet.atmosphereRaymarchDistance },
+
+        uOzoneBeta: { value: new Vector3(3.426e-6, 8.298e-6, 0.356e-6) }, // High green absorption
+        uOzoneIntensity: { value: this.planet.ozoneIntensity },
+        uOzoneCenterHeight: { value: this.planet.ozoneCenterHeight }, // Peaks
+        uOzoneThickness: { value: this.planet.ozoneThickness }, // Spans
       },
       depthWrite: false,
       depthTest: false,
       transparent: true,
     });
 
-    const geometry = new THREE.PlaneGeometry(2, 2);
-    this.mesh = new THREE.Mesh(geometry, this.raycastMaterial);
+    const geometry = new PlaneGeometry(2, 2);
+    this.mesh = new Mesh(geometry, this.raycastMaterial);
     this.mesh.frustumCulled = false;
     this.mesh.renderOrder = 1000;
     this.scene.add(this.mesh);
+  }
+
+  getDistanceToPlanetCenter(): number {
+    return this.camera.position.distanceTo(this.planet.position);
   }
 
   setShaderParams = (params: Record<string, any>) => {
@@ -65,23 +93,46 @@ export class GameLogic {
     }
   };
 
-  setPlanetParams = (params: Record<string, number>) => {
-    for (const field in params) {
-      if (Object.hasOwn(params, field)) {
-        this.planetParams[field as keyof typeof DEFAULT_PLANET] = params[field];
+  update(delta: number) {
+    if (this.planet.rotationSpeed > 0) {
+      const angleDelta = this.planet.rotationSpeed * delta;
+      this.planet.rotate(angleDelta);
+
+      // Determine how much the planet "drags" the camera along with it.
+      const altitude = Math.max(0, this.getDistanceToPlanetCenter() - this.planet.radius);
+
+      let dragFactor = 0;
+      if (altitude <= 2.1) {
+        // Ground friction: 100% synchronization with planet rotation
+        dragFactor = 1.0;
+      } else if (altitude < this.planet.atmosphereHeight) {
+        // Atmospheric drag: exponentially decreases with altitude (thinner air)
+        const scaleHeight = Math.max(1, this.planet.atmosphereHeight * 0.2);
+        dragFactor = Math.exp(-altitude / scaleHeight);
+      } else {
+        // Outer space: no drag, you are stationary in the cosmic frame
+        dragFactor = 0.0;
+      }
+
+      const cameraAngleDelta = angleDelta * dragFactor;
+      if (cameraAngleDelta !== 0) {
+        // Rotate camera position around Y axis relative to pivot
+        const pivot = this.planet.position; // TODO: rotate camera WITH the planet
+        const pos = sub(this.camera.position, pivot);
+        pos.applyAxisAngle(new Vector3(0, 1, 0), cameraAngleDelta);
+        this.camera.position.copy(pivot).add(pos);
+
+        // Rotate camera yaw to turn WITH the planet
+        this.camera.rotation.y += cameraAngleDelta;
       }
     }
-    this.setShaderParams({
-      uPlanetCenter: new THREE.Vector3(0, -this.planetParams.planetRadius, 0),
-      uPlanetRadius: this.planetParams.planetRadius,
-      uAtmosphereRadius: this.planetParams.planetRadius + this.planetParams.atmosphereHeight,
-    });
-  };
 
-  update(camera: THREE.Camera, _time: number) {
-    camera.updateMatrixWorld();
-    this.raycastMaterial.uniforms.projectionMatrixInverse.value.copy(camera.projectionMatrixInverse);
-    this.raycastMaterial.uniforms.viewMatrixInverse.value.copy(camera.matrixWorld);
+    this.camera.updateMatrixWorld();
+
+    this.setShaderParams({
+      projectionMatrixInverse: this.camera.projectionMatrixInverse,
+      viewMatrixInverse: this.camera.matrixWorld,
+    });
   }
 
   dispose() {

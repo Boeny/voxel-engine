@@ -1,23 +1,29 @@
-import * as THREE from 'three';
+import { Camera, Vector3 } from 'three';
 
 import { keys, setupKeyboardEvents } from '@/events';
+import { AppState } from '@/store';
+import { EditorHUDParams } from '@/types';
 
 import { Controller } from './controller';
-import { getDistanceText } from './utils';
+import { add, mul, norm, sub } from './utils';
 
-export class EditorController extends Controller {
+export class EditorController extends Controller<AppState> {
   // config
   sensitivity = 0.003;
-  planetRadius = 6371000;
-  focusPoint = new THREE.Vector3(0, -this.planetRadius, 0);
 
   // state
   mouseDelta = { x: 0, y: 0 };
   isRightDragging = false;
   isLeftDragging = false;
   wheelDelta = 0;
-
   previousMousePosition = { x: 0, y: 0 };
+  isGrounded = true;
+
+  constructor(camera: Camera, getState: () => AppState) {
+    super(camera, getState);
+    camera.position.set(0, 10_000_000, 0);
+    camera.lookAt(new Vector3());
+  }
 
   switchMenu() {
     if (this.state.gameState === 'paused') {
@@ -40,7 +46,7 @@ export class EditorController extends Controller {
       this.previousMousePosition.x = e.clientX;
       this.previousMousePosition.y = e.clientY;
 
-      if (e.button === 0 && e.altKey) {
+      if (e.button === 0) {
         this.isLeftDragging = true;
       }
       if (e.button === 2) {
@@ -90,28 +96,31 @@ export class EditorController extends Controller {
     };
   }
 
-  update(camera: THREE.Camera, delta: number) {
-    const dt = Math.min(delta, 0.1);
+  update(delta: number, selectedObject: { position: Vector3; radius: number } | null) {
+    if (!selectedObject) {
+      return;
+    }
 
-    const planetCenter = new THREE.Vector3(0, -this.planetRadius, 0);
-    const isFocusPlanetCenter = this.focusPoint.distanceTo(planetCenter) < 1.0;
+    const vectorFromObject = sub(this.camera.position, selectedObject.position);
+    const distanceToObject = vectorFromObject.length();
+    const normal = norm(vectorFromObject);
 
     // Effective distance used for scaling
     // If focus is planet center, scale with altitude
-    const rawDistToFocus = camera.position.distanceTo(this.focusPoint);
-    const effectiveDist = isFocusPlanetCenter ? Math.max(1, rawDistToFocus - this.planetRadius) : Math.max(1, rawDistToFocus);
+    const effectiveDist = Math.max(1, distanceToObject - selectedObject.radius);
 
     // Logarithmic-like scale for speed.
     // In close range it's small, in far range it's large.
     const speedScale = Math.max(5.0, effectiveDist * 2.0);
-    const moveSpeed = speedScale * dt;
+    const moveSpeed = speedScale * delta;
 
     // Local Movement (WASD)
-    const forward = new THREE.Vector3(0, 0, -1).applyQuaternion(camera.quaternion);
-    const right = new THREE.Vector3(1, 0, 0).applyQuaternion(camera.quaternion);
-    const up = new THREE.Vector3(0, 1, 0).applyQuaternion(camera.quaternion);
+    const forward = new Vector3(0, 0, -1).applyQuaternion(this.camera.quaternion);
+    const right = new Vector3(1, 0, 0).applyQuaternion(this.camera.quaternion);
+    const up = normal;
 
-    const moveDir = new THREE.Vector3();
+    const moveDir = new Vector3();
+
     if (keys['KeyW']) {
       moveDir.add(forward);
     }
@@ -132,71 +141,61 @@ export class EditorController extends Controller {
     }
 
     if (moveDir.lengthSq() > 0) {
-      moveDir.normalize();
-      camera.position.addScaledVector(moveDir, moveSpeed);
+      moveDir.normalize().multiplyScalar(moveSpeed);
+      this.camera.position.add(moveDir);
     }
 
     // Left Drag -> Look around freely
     if (this.isLeftDragging && (this.mouseDelta.x !== 0 || this.mouseDelta.y !== 0)) {
-      camera.rotation.y -= this.mouseDelta.x * this.sensitivity;
-      camera.rotation.x -= this.mouseDelta.y * this.sensitivity;
-      camera.rotation.x = Math.max(-Math.PI / 2, Math.min(Math.PI / 2, camera.rotation.x));
+      this.camera.rotation.y -= this.mouseDelta.x * this.sensitivity;
+      this.camera.rotation.x -= this.mouseDelta.y * this.sensitivity;
+
+      this.mouseDelta.x = 0;
+      this.mouseDelta.y = 0;
     }
 
     // Right Drag -> Orbit around focus point
     if (this.isRightDragging && (this.mouseDelta.x !== 0 || this.mouseDelta.y !== 0)) {
-      const offset = camera.position.clone().sub(this.focusPoint);
       const angleY = -this.mouseDelta.x * this.sensitivity;
       const angleX = -this.mouseDelta.y * this.sensitivity;
 
-      offset.applyAxisAngle(new THREE.Vector3(0, 1, 0), angleY);
+      const newVector = vectorFromObject.clone().applyAxisAngle(new Vector3(0, 1, 0), angleY);
+      const camRight = new Vector3(1, 0, 0).applyQuaternion(this.camera.quaternion);
+      newVector.applyAxisAngle(camRight, angleX);
 
-      const camRight = new THREE.Vector3(1, 0, 0).applyQuaternion(camera.quaternion);
-      offset.applyAxisAngle(camRight, angleX);
+      this.camera.position.copy(selectedObject.position).add(newVector);
 
-      camera.position.copy(this.focusPoint).add(offset);
-      camera.lookAt(this.focusPoint);
+      this.mouseDelta.x = 0;
+      this.mouseDelta.y = 0;
     }
-
-    this.mouseDelta.x = 0;
-    this.mouseDelta.y = 0;
 
     // Zooming to focus point (Mouse Wheel)
     if (this.wheelDelta !== 0) {
-      const offset = camera.position.clone().sub(this.focusPoint);
-      const dist = offset.length();
+      const zoomAmount = (this.wheelDelta > 0 ? 1 : -1) * distanceToObject * 0.2;
 
-      const zoomAmount = (this.wheelDelta > 0 ? 1 : -1) * effectiveDist * 0.2;
-      let newDist = dist + zoomAmount;
+      let newDist = distanceToObject + zoomAmount;
       if (newDist < 0.1) {
         newDist = 0.1;
       }
 
-      offset.normalize().multiplyScalar(newDist);
+      const newVector = vectorFromObject.clone().normalize().multiplyScalar(newDist);
       // Only apply if it doesn't push us into the planet (checked below)
-      camera.position.copy(this.focusPoint).add(offset);
+      this.camera.position.copy(selectedObject.position).add(newVector);
+
       this.wheelDelta = 0;
     }
 
-    // Constraint: Can't go below planet surface
-    const distToCenter = camera.position.distanceTo(planetCenter);
-    const minRadius = this.planetRadius + 0.1; // 0.1m above ground
-
-    if (distToCenter < minRadius) {
-      const upDir = camera.position.clone().sub(planetCenter).normalize();
-      camera.position.copy(planetCenter).add(upDir.multiplyScalar(minRadius));
+    const distanceToCameraOnGround = selectedObject.radius + 1;
+    this.isGrounded = distanceToObject < distanceToCameraOnGround;
+    if (this.isGrounded) {
+      this.camera.position.copy(add(selectedObject.position, mul(normal, distanceToCameraOnGround)));
     }
   }
 
-  updateUI(camera: THREE.Camera) {
-    // The camera's local Y position is exactly its altitude above the spherical planet surface
-    // because the planet sphere is centered at (x, -R, z) relative to the camera.
-    const altitude = camera.position.y;
-
-    const altEl = document.getElementById('hud-altitude');
-
-    if (altEl) {
-      altEl.innerText = `Altitude: ${getDistanceText(altitude)}`;
-    }
+  getHUDParams(selectedObject: { position: Vector3; radius: number } | null): EditorHUDParams {
+    return {
+      distanceToFocusPoint: this.getDistanceToObject(selectedObject),
+      isGrounded: this.isGrounded,
+    };
   }
 }

@@ -1,20 +1,25 @@
-import * as THREE from 'three';
+import { Camera, Vector3, WebGLRenderer } from 'three';
 
-import { AppState } from '@/store';
+export class Controller<State> {
+  constructor(
+    protected camera: Camera,
+    private getState: () => State,
+  ) {}
 
-type State = AppState;
-
-export class Controller {
-  constructor(private getState: () => State) {}
-
-  get state() {
+  get state(): State {
     return this.getState();
   }
 
   setupEvents(): () => void {
     return () => {};
   }
-  onGameStateChange(_: THREE.WebGLRenderer) {}
-  update(_: THREE.Camera, _delta: number) {}
-  updateUI(_: THREE.Camera) {}
+  onGameStateChange(_: WebGLRenderer) {}
+
+  getDistanceToObject(object: { position: Vector3; radius: number } | null) {
+    if (!object) {
+      return 0;
+    }
+
+    return this.camera.position.distanceTo(object.position) - object.radius;
+  }
 }
