@@ -16,7 +16,7 @@ export class GameLogic {
     private camera: Camera,
     private scene: Scene,
   ) {
-    this.star = new Star({ intensity: 5, position: new Vector3(), radius: 0, angle: 0 }, this.setShaderParams); // TODO: apply real position and radius
+    this.star = new Star({ intensity: 5, position: new Vector3(), radius: 0, angle: 90 }, this.setShaderParams); // TODO: apply real position and radius
     this.planet = new Planet(
       {
         position: new Vector3(0, -6_371_000, 0),
@@ -86,6 +86,9 @@ export class GameLogic {
   }
 
   setShaderParams = (params: Record<string, any>) => {
+    if (!this.raycastMaterial) {
+      return;
+    }
     for (const field in params) {
       if (Object.hasOwn(params, field)) {
         this.raycastMaterial.uniforms[field].value = params[field];
