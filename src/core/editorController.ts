@@ -199,9 +199,9 @@ export class EditorController extends Controller<AppState> {
 
     // Zooming to focus point (Mouse Wheel)
     if (this.wheelDelta !== 0) {
-      const zoomAmount = (this.wheelDelta > 0 ? 1 : -1) * distanceToObject * 0.2;
+      const zoomAmount = this.wheelDelta > 0 ? 1 : -1;
 
-      let newDist = distanceToObject + zoomAmount;
+      let newDist = distanceToObject + moveSpeed * zoomAmount;
       if (newDist < 0.1) {
         newDist = 0.1;
       }
