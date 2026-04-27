@@ -1,12 +1,13 @@
 import { Camera, Vector3, WebGLRenderer } from 'three';
 
+import mapData from '@/data/map.json';
 import { keys, setupKeyboardEvents } from '@/events';
 import { AppState } from '@/store';
 import { PlayerHUDParams } from '@/types';
 
 import { Controller } from './controller';
 import { PointerLock } from './pointerLock';
-import { add, mul, norm, sub } from './utils';
+import { add, arrayToVector, mul, norm, sub } from './utils';
 
 export class PlayerController extends Controller<AppState> {
   // components
@@ -15,7 +16,6 @@ export class PlayerController extends Controller<AppState> {
   // state
   velocity = new Vector3();
   isGrounded = true;
-  uiParams = { speed: 0 };
 
   // config
   speed = 5; // m/s
@@ -25,7 +25,7 @@ export class PlayerController extends Controller<AppState> {
 
   constructor(camera: Camera, getState: () => AppState) {
     super(camera, getState);
-    camera.position.set(0, 0, 0);
+    camera.position.copy(arrayToVector(mapData.planet.position).add(new Vector3(0, mapData.planet.radius + this.playerHeight / 1000, 0)));
     camera.rotation.set(0, 0, 0); // Camera looks forward by default
   }
 
@@ -102,7 +102,7 @@ export class PlayerController extends Controller<AppState> {
 
     // Acceleration (constantForce)
     if (moveDir.lengthSq() > 0) {
-      moveDir.normalize().multiplyScalar(this.speed * delta);
+      moveDir.normalize().multiplyScalar((this.speed / 1000) * delta);
       this.velocity.x += moveDir.x;
       this.velocity.z += moveDir.z;
     }
@@ -111,14 +111,14 @@ export class PlayerController extends Controller<AppState> {
       let vectorFromObject = sub(this.camera.position, selectedObject.position);
       let normal = norm(vectorFromObject);
 
-      const gravityVector = mul(normal, -this.gravity * delta);
+      const gravityVector = mul(normal, -(this.gravity / 1000) * delta);
       this.velocity.add(gravityVector);
 
       this.camera.position.add(this.velocity);
       vectorFromObject = sub(this.camera.position, selectedObject.position);
       normal = norm(vectorFromObject);
 
-      const distanceToCameraOnGround = selectedObject.radius + this.playerHeight;
+      const distanceToCameraOnGround = selectedObject.radius + this.playerHeight / 1000;
       this.isGrounded = vectorFromObject.length() <= distanceToCameraOnGround;
       if (this.isGrounded) {
         this.camera.position.copy(add(selectedObject.position, mul(normal, distanceToCameraOnGround)));
@@ -142,8 +142,8 @@ export class PlayerController extends Controller<AppState> {
 
   getHUDParams(selectedObject: { position: Vector3; radius: number } | null): PlayerHUDParams {
     return {
-      speed: this.velocity.length(),
-      distanceToFocusPoint: this.getDistanceToObject(selectedObject) - this.playerHeight,
+      speed: this.velocity.length() * 1000, // m/s
+      distanceToFocusPoint: this.getDistanceToObject(selectedObject) * 1000 - this.playerHeight, // m
       isGrounded: this.isGrounded,
     };
   }

@@ -1,0 +1,28 @@
+{
+  "star": {
+    "position": [0, 0, 0],
+    "angle": 0,
+    "radius": 695700,
+    "intensity": 5
+  },
+  "planet": {
+    "position": [0, 150000000, 0],
+    "radius": 6371,
+    "rotation": [0.0072, 1, 0],
+    "rotationSpeed": 0.05,
+    "angle": 0.0,
+    "atmosphere": {
+      "height": 100,
+      "rayleighScaleHeight": 15,
+      "mieScaleHeight": 1.5,
+      "miePreferredScatteringDirection": 0.85,
+      "mieAbsorption": 0.1,
+      "raymarchStepsCount": 16,
+      "raymarchDistance": 0,
+      "skyBrightness": 7.0,
+      "ozoneIntensity": 0.58,
+      "ozoneCenterHeight": 99,
+      "ozoneThickness": 12
+    }
+  }
+}

@@ -2,10 +2,11 @@ import { Vector3 } from 'three';
 
 import { shaderParam } from './decorators';
 import { SelectableObject } from './selectableObject';
+import { angleToRad, arrayToVector } from './utils';
 
 type PlanetParams = {
-  position: Vector3;
-  rotation: Vector3;
+  position: number[];
+  rotation: number[];
   radius: number;
   rotationSpeed: number;
   angle: number;
@@ -14,6 +15,7 @@ type PlanetParams = {
     rayleighScaleHeight: number;
     mieScaleHeight: number;
     miePreferredScatteringDirection: number;
+    mieAbsorption: number;
     raymarchStepsCount: number;
     raymarchDistance: number;
     skyBrightness: number;
@@ -51,11 +53,22 @@ export class Planet extends SelectableObject {
     });
   }
 
+  private _angle!: number;
+  get angle(): number {
+    return this._angle;
+  }
+  set angle(v: number) {
+    this._angle = v;
+    this.setShaderParams({
+      uPlanetAngle: angleToRad(v),
+    });
+  }
+
   // Simple 1:1 shader param mappings
-  @shaderParam('uPlanetAngle') angle!: number;
   @shaderParam('uRayleighScaleHeight') atmosphereRayleighScaleHeight!: number;
   @shaderParam('uMieScaleHeight') atmosphereMieScaleHeight!: number;
   @shaderParam('uMiePreferredScatteringDirection') atmosphereMiePreferredScatteringDirection!: number;
+  @shaderParam('uMieBetaAbsorption') atmosphereMieAbsorption!: number;
   @shaderParam('atmSteps') atmosphereRaymarchStepsCount!: number;
   @shaderParam('uAtmosphereRaymarchDistance') atmosphereRaymarchDistance!: number;
   @shaderParam('uSkyBrightness') skyBrightness!: number;
@@ -68,8 +81,8 @@ export class Planet extends SelectableObject {
     private setShaderParams: (params: Record<string, any>) => void,
   ) {
     super('planet');
-    this.position = position;
-    this.rotation = rotation.normalize();
+    this.position = arrayToVector(position);
+    this.rotation = arrayToVector(rotation);
     this.rotationSpeed = rotationSpeed;
 
     this.radius = radius;
@@ -78,6 +91,7 @@ export class Planet extends SelectableObject {
     this.atmosphereRayleighScaleHeight = atmosphere.rayleighScaleHeight;
     this.atmosphereMieScaleHeight = atmosphere.mieScaleHeight;
     this.atmosphereMiePreferredScatteringDirection = atmosphere.miePreferredScatteringDirection;
+    this.atmosphereMieAbsorption = atmosphere.mieAbsorption;
     this.atmosphereRaymarchStepsCount = atmosphere.raymarchStepsCount;
     this.atmosphereRaymarchDistance = atmosphere.raymarchDistance;
     this.skyBrightness = atmosphere.skyBrightness;

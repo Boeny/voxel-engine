@@ -9,19 +9,20 @@ import { EditorHUDParams } from '@/types';
 function PlanetParams({ selectedObject }: { selectedObject: Planet }) {
   useControls('Selected Object Settings', () => {
     return getControlParams(selectedObject, {
-      planetRadius: ['radius', 1_000_000, 7_000_000, 1000],
-      atmosphereHeight: ['atmosphereHeight', 0, 100_000, 1],
+      planetRadius: ['radius', 1000, 7000, 1],
+      atmosphereHeight: ['atmosphereHeight', 0, 200, 1],
       planetRotationSpeed: ['rotationSpeed', 0, 1, 0.01],
       planetAngle: ['angle', 0, 360, 0.01],
       skyBrightness: ['skyBrightness', 0, 50, 0.1],
-      rayleighScaleHeight: ['atmosphereRayleighScaleHeight', 1000, 20000, 1],
-      mieScaleHeight: ['atmosphereMieScaleHeight', 1000, 20000, 1],
-      miePreferredScatteringDirection: ['atmosphereMiePreferredScatteringDirection', 0, 0.99, 0.01],
-      atmosphereRaymarchStepsCount: ['atmosphereRaymarchStepsCount', 1, 32, 1],
-      atmosphereRaymarchDistance: ['atmosphereRaymarchDistance', 0, 50000, 1],
+      rayleighScaleHeight: ['atmosphereRayleighScaleHeight', 5, 20, 0.1], // 5-8 km (standart 8)
+      mieScaleHeight: ['atmosphereMieScaleHeight', 0, 5, 0.1], // 2-5 km (standart 1,5-2,5)
+      miePreferredScatteringDirection: ['atmosphereMiePreferredScatteringDirection', -1, 1, 0.01], // > 0: Sun halo, 0.75- 0.95
+      mieAbsorption: ['atmosphereMieAbsorption', 0, 1, 0.1], // standart - 10% of scattering
+      atmosphereRaymarchStepsCount: ['atmosphereRaymarchStepsCount', 1, 32, 1], // 16
+      atmosphereRaymarchDistance: ['atmosphereRaymarchDistance', 0, 50, 1], // 0
       ozoneIntensity: ['ozoneIntensity', 0, 5, 0.01],
-      ozoneCenterHeight: ['ozoneCenterHeight', 0, 50_000, 1],
-      ozoneThickness: ['ozoneThickness', 0, 50_000, 1],
+      ozoneCenterHeight: ['ozoneCenterHeight', 0, 200, 1], // 15-35 km
+      ozoneThickness: ['ozoneThickness', 0, 200, 1], // 40 km
     }) as any;
   });
 

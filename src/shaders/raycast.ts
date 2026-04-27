@@ -29,7 +29,8 @@ uniform float uOzoneThickness;
 uniform float uOzoneIntensity;
 
 uniform vec3 uRayleighBeta;
-uniform vec3 uMieBeta;
+uniform vec3 uMieBetaScattering;
+uniform float uMieBetaAbsorption;
 uniform float uRayleighScaleHeight;
 uniform float uMieScaleHeight;
 uniform float uMiePreferredScatteringDirection;
@@ -38,12 +39,11 @@ uniform float uAtmosphereRaymarchDistance;
 uniform vec3 uPlanetAxis;
 uniform sampler2D uEarthTexture;
 
-// A highly precise intersection for the planet to avoid float32 catastrophic cancellation
+// Precision-stable sphere intersection (camera-relative: r0 is relative to camera = world origin)
 vec2 intersectPlanetSphere(vec3 r0, vec3 rd, float sr) {
     vec3 oc = r0 - uPlanetCenter;
     float b = dot(oc, rd);
-    float srSqDiff = uPlanetRadius * uPlanetRadius - sr * sr;
-    float c = oc.x * oc.x + oc.z * oc.z + r0.y * r0.y + 2.0 * r0.y * uPlanetRadius + srSqDiff;
+    float c = (length(oc) + sr) * (length(oc) - sr);
     float h = b * b - c;
     if (h < 0.0) return vec2(-1.0);
     h = sqrt(h);
@@ -51,9 +51,7 @@ vec2 intersectPlanetSphere(vec3 r0, vec3 rd, float sr) {
 }
 
 float getAltitude(vec3 p) {
-    vec3 oc = p - uPlanetCenter;
-    float c = oc.x * oc.x + oc.z * oc.z + p.y * p.y + 2.0 * p.y * uPlanetRadius;
-    return c / (length(oc) + uPlanetRadius);
+    return length(p - uPlanetCenter) - uPlanetRadius;
 }
 
 // Procedural Stars (Stable Cubemap Grid)
@@ -140,7 +138,7 @@ void main() {
     vec4 viewPos = projectionMatrixInverse * vec4(vNdc, -1.0, 1.0);
     viewPos /= viewPos.w;
     vec3 rayDir = normalize((viewMatrixInverse * vec4(viewPos.xyz, 0.0)).xyz);
-    vec3 rayPos = cameraPosition;
+    vec3 rayPos = vec3(0.0); // camera-relative: camera is always at origin
 
     // 1. Ground Intersection (Spherical Planet)
     bool hitGround = false;
@@ -219,8 +217,9 @@ void main() {
                     lightOzoneOpticalDepth += max(0.0, 1.0 - abs(lightHeight - uOzoneCenterHeight) / (uOzoneThickness * 0.5)) * lightStepSize;
                 }
 
+                vec3 uMieBetaExtinction = uMieBetaScattering * (1.0 + uMieBetaAbsorption);
                 vec3 tau = uRayleighBeta * (rayleighOpticalDepth + lightRayleighOpticalDepth)
-                    + uMieBeta * (mieOpticalDepth + lightMieOpticalDepth)
+                    + uMieBetaExtinction * (mieOpticalDepth + lightMieOpticalDepth)
                     + uOzoneBeta * (ozoneOpticalDepth + lightOzoneOpticalDepth) * uOzoneIntensity;
 
                 tau = max(vec3(0.0), tau);
@@ -243,7 +242,7 @@ void main() {
     vec3 midPoint = rayPos + rayDir * (distToAtmosphere + distThroughAtmosphere * 0.5);
     float midSunVisibility = smoothstep(-0.15, 0.05, dot(normalize(midPoint - uPlanetCenter), uSunDirection));
 
-    vec3 atmosphereColor = (totalRayleigh * uRayleighBeta * phaseRayleigh + totalMie * uMieBeta * phaseMie) * uSunIntensity;
+    vec3 atmosphereColor = (totalRayleigh * uRayleighBeta * phaseRayleigh + totalMie * uMieBetaScattering * phaseMie) * uSunIntensity;
     atmosphereColor *= uSkyBrightness;
 
     // Fake multiple scattering to prevent completely black horizon
@@ -251,7 +250,7 @@ void main() {
     float fakeAmbient = clamp(rayleighOpticalDepth / 100000.0, 0.0, 1.0) * midSunVisibility;
     atmosphereColor += vec3(0.02, 0.05, 0.1) * fakeAmbient * uSunIntensity * uSkyBrightness;
 
-    vec3 viewTransmittance = exp(-(uRayleighBeta * rayleighOpticalDepth + uMieBeta * mieOpticalDepth + uOzoneBeta * ozoneOpticalDepth * uOzoneIntensity));
+    vec3 viewTransmittance = exp(-(uRayleighBeta * rayleighOpticalDepth + uMieBetaScattering * mieOpticalDepth + uOzoneBeta * ozoneOpticalDepth * uOzoneIntensity));
     vec3 finalColor = atmosphereColor;
 
     if (hitGround) {
@@ -292,6 +291,7 @@ void main() {
         bool groundInShadow = false;
         // Use 0.999 radius to prevent self-shadowing artifacts
         vec2 groundPlanetHit = intersectPlanetSphere(hitPos + normal * 0.01, uSunDirection, uPlanetRadius * 0.999);
+
         if (groundPlanetHit.x > 0.0) groundInShadow = true;
 
         vec3 sunTransmittance = vec3(0.0);
@@ -305,7 +305,7 @@ void main() {
                 glSample += uSunDirection * glStepSize;
             }
 
-            vec3 gTau = uRayleighBeta * groundLightRayleigh + uMieBeta * groundLightMie + uOzoneBeta * groundLightOzone * uOzoneIntensity;
+            vec3 gTau = uRayleighBeta * groundLightRayleigh + uMieBetaScattering * groundLightMie + uOzoneBeta * groundLightOzone * uOzoneIntensity;
             sunTransmittance = exp(-max(vec3(0.0), gTau));
         }
 
@@ -317,9 +317,10 @@ void main() {
         finalColor = litGround * viewTransmittance + atmosphereColor;
     } else {
         float stars = getGeneratedStars(rayDir);
+
         // Hide stars if the atmosphere is bright (daytime) or if we are looking at the sun
         float atmosphereBrightness = dot(atmosphereColor, vec3(0.333));
-        stars *= smoothstep(0.5, 0.0, max(0.0, cosTheta));
+        //stars *= smoothstep(0.5, 0.0, max(0.0, cosTheta));
         stars *= smoothstep(0.1, 0.01, atmosphereBrightness);
         finalColor += vec3(stars);
 

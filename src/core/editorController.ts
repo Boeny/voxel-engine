@@ -1,15 +1,17 @@
 import { Camera, Vector3 } from 'three';
 
+import mapData from '@/data/map.json';
 import { keys, setupKeyboardEvents } from '@/events';
 import { AppState } from '@/store';
 import { EditorHUDParams } from '@/types';
 
 import { Controller } from './controller';
-import { add, mul, norm, sub } from './utils';
+import { add, arrayToVector, mul, norm, sub } from './utils';
 
 export class EditorController extends Controller<AppState> {
   // config
   sensitivity = 0.003;
+  playerHeight = 2; // m
 
   // state
   mouseDelta = { x: 0, y: 0 };
@@ -19,10 +21,10 @@ export class EditorController extends Controller<AppState> {
   previousMousePosition = { x: 0, y: 0 };
   isGrounded = true;
 
-  constructor(camera: Camera, getState: () => AppState, planetCenter: Vector3) {
+  constructor(camera: Camera, getState: () => AppState) {
     super(camera, getState);
-    camera.position.set(7_800_000, -5_500_000, 14_500_000);
-    camera.lookAt(planetCenter);
+    camera.position.copy(arrayToVector(mapData.planet.position).add(new Vector3(0, mapData.planet.radius * 2, 0)));
+    camera.lookAt(arrayToVector(mapData.planet.position));
   }
 
   switchMenu() {
@@ -214,7 +216,7 @@ export class EditorController extends Controller<AppState> {
       this.wheelDelta = 0;
     }
 
-    const distanceToCameraOnGround = selectedObject.radius + 2;
+    const distanceToCameraOnGround = selectedObject.radius + this.playerHeight / 1000;
     this.isGrounded = distanceToObject <= distanceToCameraOnGround;
     if (this.isGrounded) {
       this.camera.position.copy(add(selectedObject.position, mul(normal, distanceToCameraOnGround)));
@@ -223,7 +225,7 @@ export class EditorController extends Controller<AppState> {
 
   getHUDParams(selectedObject: { position: Vector3; radius: number } | null): EditorHUDParams {
     return {
-      distanceToFocusPoint: this.getDistanceToObject(selectedObject),
+      distanceToFocusPoint: this.getDistanceToObject(selectedObject) * 1000, // m
       isGrounded: this.isGrounded,
       cameraPosition: this.camera.position,
     };

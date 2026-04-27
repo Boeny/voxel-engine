@@ -61,10 +61,12 @@ export function getControlParams<T extends string, U extends string>(
   return result;
 }
 
-export function getSunDirection(angle: number): Vector3 {
-  const tilt = (angle * Math.PI) / 180;
+export function angleToRad(angle: number): number {
+  return (angle * Math.PI) / 180;
+}
 
-  return new Vector3(Math.cos(tilt), Math.sin(tilt), 0).normalize();
+export function getSunDirection(rad: number): Vector3 {
+  return new Vector3(Math.cos(rad), Math.sin(rad), 0).normalize();
 }
 
 // clean functions with vectors
@@ -83,4 +85,12 @@ export function mul(a: Vector3, s: number): Vector3 {
 
 export function norm(a: Vector3): Vector3 {
   return a.clone().normalize();
+}
+
+export function arrayToVector(array: number[]): Vector3 {
+  if (array.length !== 3) {
+    throw new Error('the array is not a vector');
+  }
+
+  return new Vector3(array[0], array[1], array[2]);
 }

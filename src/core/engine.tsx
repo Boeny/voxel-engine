@@ -32,9 +32,7 @@ const SceneSetup = () => {
     camera.rotation.order = 'YXZ'; // Allows proper FPS-like rotation without gimbal lock at poles
 
     gameLogic.current = new GameLogic(camera, scene);
-    controller.current = isEditor
-      ? new EditorController(camera, getState, gameLogic.current.planet.position)
-      : new PlayerController(camera, getState);
+    controller.current = isEditor ? new EditorController(camera, getState) : new PlayerController(camera, getState);
     updateHUD.current = isEditor ? updateEditorHUD : updatePlayerHUD;
 
     state.select(gameLogic.current.planet);

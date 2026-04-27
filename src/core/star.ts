@@ -1,7 +1,14 @@
 import { Vector3 } from 'three';
 
 import { SelectableObject } from './selectableObject';
-import { getSunDirection } from './utils';
+import { angleToRad, arrayToVector, getSunDirection } from './utils';
+
+type StarParams = {
+  intensity: number;
+  radius: number;
+  position: number[];
+  angle: number;
+};
 
 export class Star extends SelectableObject {
   radius: number;
@@ -14,7 +21,7 @@ export class Star extends SelectableObject {
   set angle(v: number) {
     this._angle = v;
     this.setShaderParams({
-      uSunDirection: getSunDirection(v),
+      uSunDirection: getSunDirection(angleToRad(v)),
     });
   }
 
@@ -30,12 +37,12 @@ export class Star extends SelectableObject {
   }
 
   constructor(
-    { intensity, radius, position, angle }: { intensity: number; radius: number; position: Vector3; angle: number },
+    { intensity, radius, position, angle }: StarParams,
     private setShaderParams: (params: any) => void,
   ) {
     super('star');
     this.radius = radius;
-    this.position = position;
+    this.position = arrayToVector(position);
     this._angle = angle;
     this._intensity = intensity;
   }
