@@ -112,5 +112,5 @@ export function EditorHUD() {
 export function updateEditorHUD({ distanceToFocusPoint, isGrounded, cameraPosition: { x, y, z } }: EditorHUDParams) {
   document.getElementById('hud-altitude')!.innerText = `Altitude: ${getDistanceText(distanceToFocusPoint)}`;
   document.getElementById('hud-grounded')!.innerText = `Is Grounded: ${isGrounded}`;
-  document.getElementById('hud-position')!.innerText = `Position: (${x}, ${y}, ${z})`;
+  document.getElementById('hud-position')!.innerText = `Position: (${x.toFixed(2)}, ${y.toFixed(2)}, ${z.toFixed(2)})`;
 }

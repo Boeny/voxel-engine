@@ -3,6 +3,8 @@ import { create } from 'zustand';
 import { Planet } from './core/planet';
 import { Star } from './core/star';
 
+export type RenderMode = 'atmosphere' | 'voxel';
+
 export interface AppState {
   appState: 'start' | 'scene';
   setAppState: (state: 'start' | 'scene') => void;
@@ -10,6 +12,8 @@ export interface AppState {
   setGameState: (state: 'playing' | 'paused') => void;
   mapSeed: number;
   controlType: 'fpv' | 'editor';
+  renderMode: RenderMode;
+  setRenderMode: (mode: RenderMode) => void;
   selectedObject: Planet | Star | null;
   select: (object: Planet | Star | null) => void;
 
@@ -24,6 +28,8 @@ export const useStore = create<AppState>((set) => ({
   setGameState: (gameState) => set({ gameState }),
   mapSeed: 0,
   controlType: 'editor',
+  renderMode: 'atmosphere',
+  setRenderMode: (renderMode) => set({ renderMode }),
   selectedObject: null,
   select: (selectedObject) => set({ selectedObject }),
   playNewMap: () => set((state) => getNewPlayingState(state, 'fpv')),

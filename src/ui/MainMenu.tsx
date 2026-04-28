@@ -1,4 +1,8 @@
+import { useState } from 'react';
+
 import { useStore } from '../store';
+
+import { RenderMode } from './RenderMode';
 
 type Props = {
   showContinue: boolean;
@@ -9,9 +13,30 @@ type Props = {
 };
 
 function Component({ showContinue, closeMenu, playNewMap, createNewMap, exit }: Props) {
+  const [showRenderMode, setShowRenderMode] = useState(false);
+
+  if (showRenderMode) {
+    return (
+      <div className="absolute inset-0 flex items-center justify-center bg-gray-900/90 text-white z-50">
+        <div className="flex flex-col space-y-4 w-72">
+          <RenderMode />
+          <button
+            className="px-6 py-3 bg-blue-600 hover:bg-blue-500 rounded text-lg font-medium transition-colors"
+            onClick={(e) => {
+              e.stopPropagation();
+              createNewMap();
+            }}
+          >
+            Create map
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="absolute inset-0 flex items-center justify-center bg-gray-900/90 text-white z-50">
-      <div className="flex flex-col space-y-4 w-64">
+      <div className="flex flex-col space-y-4 w-72">
         <h1 className="text-4xl font-bold text-center mb-8">Voxel World</h1>
         {showContinue && (
           <button
@@ -24,6 +49,7 @@ function Component({ showContinue, closeMenu, playNewMap, createNewMap, exit }: 
             Continue
           </button>
         )}
+
         <button
           className="px-6 py-3 bg-blue-600 hover:bg-blue-500 rounded text-lg font-medium transition-colors"
           onClick={(e) => {
@@ -33,15 +59,17 @@ function Component({ showContinue, closeMenu, playNewMap, createNewMap, exit }: 
         >
           Play
         </button>
+
         <button
           className="px-6 py-3 bg-blue-600 hover:bg-blue-500 rounded text-lg font-medium transition-colors"
           onClick={(e) => {
             e.stopPropagation();
-            createNewMap();
+            setShowRenderMode(true);
           }}
         >
           Create map
         </button>
+
         {showContinue && (
           <button
             className="px-6 py-3 bg-red-600 hover:bg-red-500 rounded text-lg font-medium transition-colors"
