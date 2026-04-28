@@ -32,6 +32,7 @@ uniform vec3 uRayleighBeta;
 uniform vec3 uMieBetaScattering;
 uniform float uMieBetaAbsorption;
 uniform float uRayleighScaleHeight;
+uniform float uRayleighOpticalDepthDistance;
 uniform float uMieScaleHeight;
 uniform float uMiePreferredScatteringDirection;
 uniform float uSunIntensity;
@@ -202,12 +203,15 @@ void main() {
             float lightMieOpticalDepth = 0.0;
             float lightOzoneOpticalDepth = 0.0;
 
-            bool inShadow = false;
-            // Use 0.999 radius to prevent self-shadowing artifacts (black bands)
-            vec2 lightPlanetHit = intersectPlanetSphere(samplePoint, uSunDirection, uPlanetRadius * 0.999);
-            if (lightPlanetHit.x > 0.0) inShadow = true;
+            // Soft shadow via geometric shadow cone: sun is visible if it's above the local horizon
+            // cosHorizon = -R/d is the cosine of the horizon angle from this sample point
+            float sampleDist = length(samplePoint - uPlanetCenter);
+            float cosHorizon = -uPlanetRadius / sampleDist;
+            float sunDotSample = dot((samplePoint - uPlanetCenter) / sampleDist, uSunDirection);
+            // smoothstep gives twilight band instead of hard shadow cutoff
+            float shadowFactor = smoothstep(cosHorizon - 0.01, cosHorizon + 0.02, sunDotSample);
 
-            if (!inShadow && lightStepSize > 0.0) {
+            if (shadowFactor > 0.001 && lightStepSize > 0.0) {
                 for (int j = 0; j < 4; j++) {
                     float lightHeight = getAltitude(lightSamplePoint);
                     if (lightHeight < 0.0) lightHeight = 0.0;
@@ -224,8 +228,8 @@ void main() {
 
                 tau = max(vec3(0.0), tau);
                 vec3 attenuation = exp(-tau);
-                totalRayleigh += hr * attenuation;
-                totalMie += hm * attenuation;
+                totalRayleigh += hr * attenuation * shadowFactor;
+                totalMie += hm * attenuation * shadowFactor;
             }
             samplePoint += rayDir * stepSize;
         }
@@ -245,10 +249,12 @@ void main() {
     vec3 atmosphereColor = (totalRayleigh * uRayleighBeta * phaseRayleigh + totalMie * uMieBetaScattering * phaseMie) * uSunIntensity;
     atmosphereColor *= uSkyBrightness;
 
-    // Fake multiple scattering to prevent completely black horizon
-    // It adds blueish ambient light where there's dense atmosphere
-    float fakeAmbient = clamp(rayleighOpticalDepth / 100000.0, 0.0, 1.0) * midSunVisibility;
-    atmosphereColor += vec3(0.02, 0.05, 0.1) * fakeAmbient * uSunIntensity * uSkyBrightness;
+    // Multiple scattering approximation: fills in dark horizon caused by single-scatter extinction
+    // Calibrated for km-scale: rayleighOpticalDepth at horizon ~500-700 km
+    float sunFacing = dot(normalize(midPoint - uPlanetCenter), uSunDirection);
+    float msSunFactor = clamp(sunFacing * 0.5 + 0.5, 0.1, 1.0); // 0.1 on night side, 1.0 on day
+    float msWeight = clamp(rayleighOpticalDepth / uRayleighOpticalDepthDistance, 0.0, 1.0);
+    atmosphereColor += vec3(0.02, 0.05, 0.1) * msWeight * msSunFactor * uSunIntensity * uSkyBrightness * 0.08;
 
     vec3 viewTransmittance = exp(-(uRayleighBeta * rayleighOpticalDepth + uMieBetaScattering * mieOpticalDepth + uOzoneBeta * ozoneOpticalDepth * uOzoneIntensity));
     vec3 finalColor = atmosphereColor;
@@ -309,8 +315,13 @@ void main() {
             sunTransmittance = exp(-max(vec3(0.0), gTau));
         }
 
-        float diff = max(dot(normal, uSunDirection), 0.0);
-        vec3 ambient = atmosphereColor * 0.4; // Ambient from sky
+        float sunDotNormal = dot(normal, uSunDirection);
+        float diff = max(sunDotNormal, 0.0);
+        // Smooth the terminator: gradually fade direct light instead of hard cutoff
+        float terminator = smoothstep(-0.08, 0.12, sunDotNormal);
+        sunTransmittance *= terminator;
+
+        vec3 ambient = atmosphereColor * 0.6; // Ambient from sky
         vec3 directLight = groundColor * sunTransmittance * diff * uSunIntensity * 0.8;
         vec3 litGround = ambient + directLight;
 
@@ -324,8 +335,10 @@ void main() {
         stars *= smoothstep(0.1, 0.01, atmosphereBrightness);
         finalColor += vec3(stars);
 
-        // Multiply by transmittance so the atmosphere naturally affects the sun
-        finalColor += getSunDisk(cosTheta) * viewTransmittance;
+        // Sun disk: use softer transmittance so corona remains visible at sunset
+        // sqrt preserves the red/orange tint while preventing the corona from disappearing
+        vec3 sunDiskTransmittance = max(sqrt(viewTransmittance), vec3(0.04, 0.01, 0.002));
+        finalColor += getSunDisk(cosTheta) * sunDiskTransmittance;
     }
 
     // Tone mapping (exposure)

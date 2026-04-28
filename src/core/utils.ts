@@ -26,39 +26,24 @@ export function getDistanceText(meters: number): string {
   );
 }
 
-export function getControlParams<T extends string, U extends string>(
-  object: Record<U, number>,
-  params: Record<T, [U, number, number, number]>,
-) {
-  const result: Record<string, {} | { value: number; min: number; max: number; transient: boolean; onChange: (value: number) => void }> =
-    {};
+export function getControlParams<T extends string>(
+  object: Record<T, any>,
+  params: Partial<Record<T, [number, number, number]>>,
+): Record<string, { value: number; min: number; max: number; transient: boolean; onChange: (value: number) => void }> {
+  return mapObjectValues(params as Record<T, [number, number, number]>, (field, value) => {
+    const [min, max, step] = value;
 
-  for (const rawField in params) {
-    if (Object.hasOwn(params, rawField)) {
-      const value = params[rawField];
-
-      if (value instanceof Array) {
-        const [field, min, max, step] = value;
-
-        result[rawField] = {
-          value: object[field],
-          min,
-          max,
-          step: step || 0.1,
-          onChange: (newValue) => {
-            object[field] = newValue;
-          },
-          transient: true,
-        };
-
-        continue;
-      }
-
-      result[rawField] = value;
-    }
-  }
-
-  return result;
+    return {
+      value: object[field],
+      min,
+      max,
+      step: step || 0.1,
+      onChange: (newValue) => {
+        object[field] = newValue;
+      },
+      transient: true,
+    };
+  });
 }
 
 export function angleToRad(angle: number): number {
@@ -87,10 +72,16 @@ export function norm(a: Vector3): Vector3 {
   return a.clone().normalize();
 }
 
+// ----
+
 export function arrayToVector(array: number[]): Vector3 {
   if (array.length !== 3) {
     throw new Error('the array is not a vector');
   }
 
   return new Vector3(array[0], array[1], array[2]);
+}
+
+export function mapObjectValues<K extends string, V1, V2>(obj: Record<K, V1>, fn: (key: K, value: V1) => V2): Record<K, V2> {
+  return Object.fromEntries(Object.entries<V1>(obj).map(([key, value]) => [key, fn(key as K, value)])) as Record<K, V2>;
 }

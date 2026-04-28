@@ -10,25 +10,24 @@ type PlanetParams = {
   radius: number;
   rotationSpeed: number;
   angle: number;
-  atmosphere: {
-    height: number;
-    rayleighScaleHeight: number;
-    mieScaleHeight: number;
-    miePreferredScatteringDirection: number;
-    mieAbsorption: number;
-    raymarchStepsCount: number;
-    raymarchDistance: number;
-    skyBrightness: number;
-    ozoneIntensity: number;
-    ozoneCenterHeight: number;
-    ozoneThickness: number;
-  };
+  atmosphereHeight: number;
+  atmosphereRayleighScaleHeight: number;
+  atmosphereRayleighOpticalDepthDistance: number;
+  atmosphereMieScaleHeight: number;
+  atmosphereMiePreferredScatteringDirection: number;
+  atmosphereMieAbsorption: number;
+  atmosphereRaymarchStepsCount: number;
+  atmosphereRaymarchDistance: number;
+  skyBrightness: number;
+  ozoneIntensity: number;
+  ozoneCenterHeight: number;
+  ozoneThickness: number;
 };
 
 export class Planet extends SelectableObject {
   position = new Vector3();
   rotation = new Vector3();
-  rotationSpeed: number;
+  rotationSpeed!: number;
 
   private _radius!: number;
   get radius(): number {
@@ -66,6 +65,7 @@ export class Planet extends SelectableObject {
 
   // Simple 1:1 shader param mappings
   @shaderParam('uRayleighScaleHeight') atmosphereRayleighScaleHeight!: number;
+  @shaderParam('uRayleighOpticalDepthDistance') atmosphereRayleighOpticalDepthDistance!: number;
   @shaderParam('uMieScaleHeight') atmosphereMieScaleHeight!: number;
   @shaderParam('uMiePreferredScatteringDirection') atmosphereMiePreferredScatteringDirection!: number;
   @shaderParam('uMieBetaAbsorption') atmosphereMieAbsorption!: number;
@@ -77,27 +77,14 @@ export class Planet extends SelectableObject {
   @shaderParam('uOzoneThickness') ozoneThickness!: number;
 
   constructor(
-    { position, rotation, radius, rotationSpeed, angle, atmosphere }: PlanetParams,
+    { position, rotation, ...other }: PlanetParams,
     private setShaderParams: (params: Record<string, any>) => void,
   ) {
     super('planet');
     this.position = arrayToVector(position);
     this.rotation = arrayToVector(rotation);
-    this.rotationSpeed = rotationSpeed;
 
-    this.radius = radius;
-    this.angle = angle;
-    this.atmosphereHeight = atmosphere.height;
-    this.atmosphereRayleighScaleHeight = atmosphere.rayleighScaleHeight;
-    this.atmosphereMieScaleHeight = atmosphere.mieScaleHeight;
-    this.atmosphereMiePreferredScatteringDirection = atmosphere.miePreferredScatteringDirection;
-    this.atmosphereMieAbsorption = atmosphere.mieAbsorption;
-    this.atmosphereRaymarchStepsCount = atmosphere.raymarchStepsCount;
-    this.atmosphereRaymarchDistance = atmosphere.raymarchDistance;
-    this.skyBrightness = atmosphere.skyBrightness;
-    this.ozoneIntensity = atmosphere.ozoneIntensity;
-    this.ozoneCenterHeight = atmosphere.ozoneCenterHeight;
-    this.ozoneThickness = atmosphere.ozoneThickness;
+    Object.entries(other).forEach(([key, value]) => ((this as any)[key] = value));
   }
 
   rotate(angle: number) {

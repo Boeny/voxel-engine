@@ -9,20 +9,21 @@ import { EditorHUDParams } from '@/types';
 function PlanetParams({ selectedObject }: { selectedObject: Planet }) {
   useControls('Selected Object Settings', () => {
     return getControlParams(selectedObject, {
-      planetRadius: ['radius', 1000, 7000, 1],
-      atmosphereHeight: ['atmosphereHeight', 0, 200, 1],
-      planetRotationSpeed: ['rotationSpeed', 0, 1, 0.01],
-      planetAngle: ['angle', 0, 360, 0.01],
-      skyBrightness: ['skyBrightness', 0, 50, 0.1],
-      rayleighScaleHeight: ['atmosphereRayleighScaleHeight', 5, 20, 0.1], // 5-8 km (standart 8)
-      mieScaleHeight: ['atmosphereMieScaleHeight', 0, 5, 0.1], // 2-5 km (standart 1,5-2,5)
-      miePreferredScatteringDirection: ['atmosphereMiePreferredScatteringDirection', -1, 1, 0.01], // > 0: Sun halo, 0.75- 0.95
-      mieAbsorption: ['atmosphereMieAbsorption', 0, 1, 0.1], // standart - 10% of scattering
-      atmosphereRaymarchStepsCount: ['atmosphereRaymarchStepsCount', 1, 32, 1], // 16
-      atmosphereRaymarchDistance: ['atmosphereRaymarchDistance', 0, 50, 1], // 0
-      ozoneIntensity: ['ozoneIntensity', 0, 5, 0.01],
-      ozoneCenterHeight: ['ozoneCenterHeight', 0, 200, 1], // 15-35 km
-      ozoneThickness: ['ozoneThickness', 0, 200, 1], // 40 km
+      radius: [1000, 7000, 1],
+      atmosphereHeight: [0, 300, 1],
+      rotationSpeed: [0, 1, 0.01],
+      angle: [0, 360, 0.01],
+      skyBrightness: [0, 50, 0.1],
+      atmosphereRayleighScaleHeight: [5, 20, 0.1], // 5-8 km (standart 8), density falloff for blue sky: 25% of atmosphere thickness
+      atmosphereRayleighOpticalDepthDistance: [1, 100, 0.1],
+      atmosphereMieScaleHeight: [0, 5, 0.1], // 2-5 km (standart 1,5-2,5), density falloff for sun halo: 5% of atmosphere thickness
+      atmosphereMiePreferredScatteringDirection: [-1, 1, 0.01], // > 0: Sun halo, 0.75- 0.95
+      atmosphereMieAbsorption: [0, 1, 0.1], // standart - 10% of scattering
+      atmosphereRaymarchStepsCount: [1, 128, 8], // 16
+      atmosphereRaymarchDistance: [0, 50, 1], // 0
+      ozoneIntensity: [0, 5, 0.01],
+      ozoneCenterHeight: [0, 200, 1], // 15-35 km, peaks
+      ozoneThickness: [0, 200, 1], // 40 km, spans
     }) as any;
   });
 
@@ -32,8 +33,8 @@ function PlanetParams({ selectedObject }: { selectedObject: Planet }) {
 function StarParams({ selectedObject }: { selectedObject: Star }) {
   useControls('Selected Object Settings', () => {
     return getControlParams(selectedObject, {
-      sunIntensity: ['intensity', 0, 20, 0.01],
-      sunAngle: ['angle', 0, 360, 0.01],
+      intensity: [0, 20, 0.01],
+      angle: [0, 360, 0.01],
     }) as any;
   });
 

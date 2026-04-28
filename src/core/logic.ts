@@ -7,7 +7,24 @@ import { raycastFrag, raycastVert } from '../shaders/raycast';
 
 import { Planet } from './planet';
 import { Star } from './star';
-import { angleToRad, getSunDirection, sub } from './utils';
+import { angleToRad, getSunDirection, mapObjectValues, sub } from './utils';
+
+const SHADER_PLANET = {
+  uRayleighScaleHeight: 'atmosphereRayleighScaleHeight',
+  uRayleighOpticalDepthDistance: 'atmosphereRayleighOpticalDepthDistance',
+  uMieScaleHeight: 'atmosphereMieScaleHeight',
+  uMiePreferredScatteringDirection: 'atmosphereMiePreferredScatteringDirection',
+  uMieBetaAbsorption: 'atmosphereMieAbsorption',
+  atmSteps: 'atmosphereRaymarchStepsCount',
+  uAtmosphereRaymarchDistance: 'atmosphereRaymarchDistance',
+  uSkyBrightness: 'skyBrightness',
+  uOzoneIntensity: 'ozoneIntensity',
+  uOzoneCenterHeight: 'ozoneCenterHeight',
+  uOzoneThickness: 'ozoneThickness',
+  uPlanetRadius: 'radius',
+  uPlanetAxis: 'rotation',
+  uPlanetAngle: 'angle',
+};
 
 export class GameLogic {
   private raycastMaterial: ShaderMaterial;
@@ -27,6 +44,8 @@ export class GameLogic {
       vertexShader: raycastVert,
       fragmentShader: raycastFrag,
       uniforms: {
+        ...mapObjectValues(SHADER_PLANET, (shaderParams, planetParam) => ({ value: this.planet[planetParam as keyof Planet] })),
+
         projectionMatrixInverse: { value: new Matrix4() },
         viewMatrixInverse: { value: new Matrix4() },
 
@@ -34,25 +53,10 @@ export class GameLogic {
         uSunDirection: { value: getSunDirection(angleToRad(this.star.angle)) },
 
         uPlanetCenter: { value: this.relativePlanetCenter },
-        uPlanetRadius: { value: this.planet.radius },
-        uPlanetAxis: { value: this.planet.rotation },
-
         uAtmosphereRadius: { value: this.planet.radius + this.planet.atmosphereHeight },
         uRayleighBeta: { value: new Vector3(5.5e-3, 13.0e-3, 22.4e-3) },
         uMieBetaScattering: { value: new Vector3(21e-3, 21e-3, 21e-3) },
-        uMieBetaAbsorption: { value: this.planet.atmosphereMieAbsorption }, // 10% of scattering
-        uRayleighScaleHeight: { value: this.planet.atmosphereRayleighScaleHeight }, // Density falloff for blue sky: 25% of atmosphere thickness (standart)
-        uMieScaleHeight: { value: this.planet.atmosphereMieScaleHeight }, // Density falloff for sun halo: 5% of atmosphere thickness
-        uMiePreferredScatteringDirection: { value: this.planet.atmosphereMiePreferredScatteringDirection },
-        uSkyBrightness: { value: this.planet.skyBrightness },
-        atmSteps: { value: this.planet.atmosphereRaymarchStepsCount },
-        uPlanetAngle: { value: this.planet.angle },
-        uAtmosphereRaymarchDistance: { value: this.planet.atmosphereRaymarchDistance },
-
         uOzoneBeta: { value: new Vector3(3.426e-3, 8.298e-3, 0.356e-3) }, // High green absorption
-        uOzoneIntensity: { value: this.planet.ozoneIntensity },
-        uOzoneCenterHeight: { value: this.planet.ozoneCenterHeight }, // Peaks
-        uOzoneThickness: { value: this.planet.ozoneThickness }, // Spans
 
         uEarthTexture: { value: null },
       },
@@ -85,7 +89,7 @@ export class GameLogic {
 
   update(delta: number) {
     if (this.planet.rotationSpeed > 0) {
-      const angleDelta = this.planet.rotationSpeed * delta;
+      const angleDelta = angleToRad(this.planet.rotationSpeed) * delta;
       this.planet.rotate(angleDelta);
 
       // Determine how much the planet "drags" the camera along with it.
