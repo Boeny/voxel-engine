@@ -1,7 +1,6 @@
 {
   "star": {
     "position": [0, 0, 0],
-    "angle": 0,
     "radius": 695700,
     "intensity": 5
   },
@@ -18,10 +17,8 @@
     "atmosphereMiePreferredScatteringDirection": 0.85,
     "atmosphereMieAbsorption": 0.1,
     "atmosphereRaymarchStepsCount": 16,
-    "atmosphereRaymarchDistance": 0,
     "skyBrightness": 7.0,
-    "ozoneIntensity": 0.58,
-    "ozoneCenterHeight": 99,
-    "ozoneThickness": 12
+    "atmosphereUseMie": true,
+    "atmosphereUseStars": true
   }
 }

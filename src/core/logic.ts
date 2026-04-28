@@ -7,7 +7,7 @@ import { raycastFrag, raycastVert } from '../shaders/raycast';
 
 import { Planet } from './planet';
 import { Star } from './star';
-import { angleToRad, getSunDirection, mapObjectValues, sub } from './utils';
+import { angleToRad, mapObjectValues, sub } from './utils';
 
 const SHADER_PLANET = {
   uRayleighScaleHeight: 'atmosphereRayleighScaleHeight',
@@ -16,14 +16,12 @@ const SHADER_PLANET = {
   uMiePreferredScatteringDirection: 'atmosphereMiePreferredScatteringDirection',
   uMieBetaAbsorption: 'atmosphereMieAbsorption',
   atmSteps: 'atmosphereRaymarchStepsCount',
-  uAtmosphereRaymarchDistance: 'atmosphereRaymarchDistance',
   uSkyBrightness: 'skyBrightness',
-  uOzoneIntensity: 'ozoneIntensity',
-  uOzoneCenterHeight: 'ozoneCenterHeight',
-  uOzoneThickness: 'ozoneThickness',
   uPlanetRadius: 'radius',
   uPlanetAxis: 'rotation',
   uPlanetAngle: 'angle',
+  uUseMie: 'atmosphereUseMie',
+  uUseStars: 'atmosphereUseStars',
 };
 
 export class GameLogic {
@@ -32,31 +30,30 @@ export class GameLogic {
   public planet: Planet;
   public star: Star;
   private readonly relativePlanetCenter = new Vector3();
+  private readonly sunDirection = new Vector3();
 
   constructor(
     private camera: Camera,
     private scene: Scene,
   ) {
-    this.star = new Star(mapData.star, this.setShaderParams); // TODO: apply real position and radius
-    this.planet = new Planet(mapData.planet, this.setShaderParams);
-
     this.raycastMaterial = new ShaderMaterial({
       vertexShader: raycastVert,
       fragmentShader: raycastFrag,
       uniforms: {
-        ...mapObjectValues(SHADER_PLANET, (shaderParams, planetParam) => ({ value: this.planet[planetParam as keyof Planet] })),
+        ...mapObjectValues(SHADER_PLANET, () => ({ value: 0 })),
 
         projectionMatrixInverse: { value: new Matrix4() },
         viewMatrixInverse: { value: new Matrix4() },
 
-        uSunIntensity: { value: this.star.intensity },
-        uSunDirection: { value: getSunDirection(angleToRad(this.star.angle)) },
+        uSunIntensity: { value: 0 },
+        uSunDirection: { value: 0 },
+        uSunAngularRadius: { value: 0 },
 
         uPlanetCenter: { value: this.relativePlanetCenter },
-        uAtmosphereRadius: { value: this.planet.radius + this.planet.atmosphereHeight },
+        uAtmosphereRadius: { value: 0 },
+
         uRayleighBeta: { value: new Vector3(5.5e-3, 13.0e-3, 22.4e-3) },
         uMieBetaScattering: { value: new Vector3(21e-3, 21e-3, 21e-3) },
-        uOzoneBeta: { value: new Vector3(3.426e-3, 8.298e-3, 0.356e-3) }, // High green absorption
 
         uEarthTexture: { value: null },
       },
@@ -72,8 +69,11 @@ export class GameLogic {
     this.scene.add(this.mesh);
 
     new TextureLoader().load(earthTextureUrl, (texture) => {
-      this.raycastMaterial.uniforms.uEarthTexture.value = texture;
+      this.setShaderParams({ uEarthTexture: texture });
     });
+
+    this.star = new Star(mapData.star, this.setShaderParams); // TODO: apply real position and radius
+    this.planet = new Planet(mapData.planet, this.setShaderParams);
   }
 
   setShaderParams = (params: Record<string, any>) => {
@@ -128,6 +128,8 @@ export class GameLogic {
     this.setShaderParams({
       projectionMatrixInverse: this.camera.projectionMatrixInverse,
       viewMatrixInverse: this.camera.matrixWorld,
+      uSunDirection: this.sunDirection.subVectors(this.star.position, this.planet.position).normalize(),
+      uSunAngularRadius: Math.atan(this.star.radius / this.star.position.distanceTo(this.planet.position)),
     });
   }
 

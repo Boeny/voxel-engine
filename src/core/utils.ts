@@ -50,10 +50,6 @@ export function angleToRad(angle: number): number {
   return (angle * Math.PI) / 180;
 }
 
-export function getSunDirection(rad: number): Vector3 {
-  return new Vector3(Math.cos(rad), Math.sin(rad), 0).normalize();
-}
-
 // clean functions with vectors
 
 export function add(a: Vector3, b: Vector3): Vector3 {

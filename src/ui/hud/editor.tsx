@@ -7,11 +7,26 @@ import { useStore } from '@/store';
 import { EditorHUDParams } from '@/types';
 
 function PlanetParams({ selectedObject }: { selectedObject: Planet }) {
+  useControls('Atmosphere Features', () => ({
+    'Mie Scattering': {
+      value: selectedObject.atmosphereUseMie,
+      onChange: (v: boolean) => {
+        selectedObject.atmosphereUseMie = v;
+      },
+    },
+    Stars: {
+      value: selectedObject.atmosphereUseStars,
+      onChange: (v: boolean) => {
+        selectedObject.atmosphereUseStars = v;
+      },
+    },
+  }));
+
   useControls('Selected Object Settings', () => {
     return getControlParams(selectedObject, {
       radius: [1000, 7000, 1],
       atmosphereHeight: [0, 300, 1],
-      rotationSpeed: [0, 1, 0.01],
+      rotationSpeed: [0, 100, 0.01],
       angle: [0, 360, 0.01],
       skyBrightness: [0, 50, 0.1],
       atmosphereRayleighScaleHeight: [5, 20, 0.1], // 5-8 km (standart 8), density falloff for blue sky: 25% of atmosphere thickness
@@ -20,10 +35,6 @@ function PlanetParams({ selectedObject }: { selectedObject: Planet }) {
       atmosphereMiePreferredScatteringDirection: [-1, 1, 0.01], // > 0: Sun halo, 0.75- 0.95
       atmosphereMieAbsorption: [0, 1, 0.1], // standart - 10% of scattering
       atmosphereRaymarchStepsCount: [1, 128, 8], // 16
-      atmosphereRaymarchDistance: [0, 50, 1], // 0
-      ozoneIntensity: [0, 5, 0.01],
-      ozoneCenterHeight: [0, 200, 1], // 15-35 km, peaks
-      ozoneThickness: [0, 200, 1], // 40 km, spans
     }) as any;
   });
 
@@ -34,7 +45,6 @@ function StarParams({ selectedObject }: { selectedObject: Star }) {
   useControls('Selected Object Settings', () => {
     return getControlParams(selectedObject, {
       intensity: [0, 20, 0.01],
-      angle: [0, 360, 0.01],
     }) as any;
   });
 

@@ -17,11 +17,9 @@ type PlanetParams = {
   atmosphereMiePreferredScatteringDirection: number;
   atmosphereMieAbsorption: number;
   atmosphereRaymarchStepsCount: number;
-  atmosphereRaymarchDistance: number;
   skyBrightness: number;
-  ozoneIntensity: number;
-  ozoneCenterHeight: number;
-  ozoneThickness: number;
+  atmosphereUseMie: boolean;
+  atmosphereUseStars: boolean;
 };
 
 export class Planet extends SelectableObject {
@@ -70,11 +68,9 @@ export class Planet extends SelectableObject {
   @shaderParam('uMiePreferredScatteringDirection') atmosphereMiePreferredScatteringDirection!: number;
   @shaderParam('uMieBetaAbsorption') atmosphereMieAbsorption!: number;
   @shaderParam('atmSteps') atmosphereRaymarchStepsCount!: number;
-  @shaderParam('uAtmosphereRaymarchDistance') atmosphereRaymarchDistance!: number;
   @shaderParam('uSkyBrightness') skyBrightness!: number;
-  @shaderParam('uOzoneIntensity') ozoneIntensity!: number;
-  @shaderParam('uOzoneCenterHeight') ozoneCenterHeight!: number;
-  @shaderParam('uOzoneThickness') ozoneThickness!: number;
+  @shaderParam('uUseMie') atmosphereUseMie!: boolean;
+  @shaderParam('uUseStars') atmosphereUseStars!: boolean;
 
   constructor(
     { position, rotation, ...other }: PlanetParams,
@@ -83,6 +79,7 @@ export class Planet extends SelectableObject {
     super('planet');
     this.position = arrayToVector(position);
     this.rotation = arrayToVector(rotation);
+    this.setShaderParams({ uPlanetAxis: this.rotation });
 
     Object.entries(other).forEach(([key, value]) => ((this as any)[key] = value));
   }

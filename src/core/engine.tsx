@@ -70,7 +70,7 @@ export const Engine = () => {
       <HUD />
 
       <Canvas
-        camera={{ position: [0, 2, 0], fov: 50, far: 1e10, near: 0.1 }}
+        camera={{ position: [0, 2, 0], fov: 50, far: 1, near: 0.1 }}
         gl={{ logarithmicDepthBuffer: true, antialias: true }}
       >
         <SceneSetup />
