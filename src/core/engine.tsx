@@ -68,27 +68,39 @@ const SceneSetup = () => {
 };
 
 const PostProcessing = () => {
-  const { enabled, intensity, threshold, smoothing } = useControls('Bloom', {
+  const bloom = useControls('Bloom', {
     enabled: true,
     intensity: { value: 0.5, min: 0, max: 5, step: 0.01 },
     threshold: { value: 6.0, min: 0, max: 10, step: 0.1 },
     smoothing: { value: 0.3, min: 0, max: 1, step: 0.01 },
   });
 
+  const exposure = useControls('Auto Exposure', {
+    adaptive: true,
+    adaptationRate: { value: 1.0, min: 0.1, max: 5.0, step: 0.1 },
+    middleGrey: { value: 0.6, min: 0.01, max: 2.0, step: 0.01 },
+    averageLuminance: { value: 1.0, min: 0.01, max: 5.0, step: 0.01 },
+  });
+
   const effects = [
     <ToneMapping
-      key={1}
+      key="tone"
       mode={ToneMappingMode.AGX}
+      adaptive={exposure.adaptive}
+      adaptationRate={exposure.adaptationRate}
+      middleGrey={exposure.middleGrey}
+      averageLuminance={exposure.averageLuminance}
+      resolution={256}
     />,
   ];
 
-  if (enabled) {
+  if (bloom.enabled) {
     effects.unshift(
       <Bloom
-        key={0}
-        luminanceThreshold={threshold}
-        luminanceSmoothing={smoothing}
-        intensity={intensity}
+        key="bloom"
+        luminanceThreshold={bloom.threshold}
+        luminanceSmoothing={bloom.smoothing}
+        intensity={bloom.intensity}
         mipmapBlur
       />,
     );

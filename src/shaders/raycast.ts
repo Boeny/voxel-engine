@@ -279,13 +279,15 @@ void main() {
 
         finalColor = litGround * viewTr + atmColor;
     } else {
+        // Сначала все яркие источники — диск, атмосфера уже в finalColor
+        finalColor += getSunDisk(rayDir) * viewTr;
+
+        // Звёзды видны только на тёмном фоне (универсально для любых ярких объектов)
         if (uUseStars) {
-            float stars = getStars(rayDir) * smoothstep(0.1, 0.01, dot(atmColor, vec3(0.333)));
+            float sceneBrightness = dot(finalColor, vec3(0.333));
+            float stars = getStars(rayDir) * smoothstep(0.5, 0.01, sceneBrightness);
             finalColor += vec3(stars);
         }
-
-        // Трансмиттанс окрашивает диск в оранжевый/красный на закате
-        finalColor += getSunDisk(rayDir) * viewTr;
     }
 
     // HDR output — тонмаппинг и bloom делаются в постпроцессе
