@@ -26,7 +26,7 @@ export class PlayerController extends Controller<AppState> {
 
   constructor(camera: Camera, getState: () => AppState) {
     super(camera, getState);
-    camera.position.copy(arrayToVector(mapData.planet.position).add(new Vector3(0, mapData.planet.radius + this.playerHeight / 1000, 0)));
+    camera.position.copy(arrayToVector(mapData.planet.position).add(new Vector3(mapData.planet.radius + this.playerHeight / 1000, 0, 0)));
     camera.rotation.set(0, 0, 0); // Camera looks forward by default
   }
 
