@@ -16,7 +16,7 @@
     "atmosphereMiePreferredScatteringDirection": 0.76,
     "atmosphereMieAbsorption": 0.0,
     "atmosphereRaymarchStepsCount": 64,
-    "secondAtmSteps": 1,
+    "secondAtmSteps": 4,
     "atmosphereUseMie": true,
     "useTransmittance": true
   }
