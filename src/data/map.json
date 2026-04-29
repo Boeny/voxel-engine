@@ -5,10 +5,10 @@
     "intensity": 9
   },
   "planet": {
-    "position": [0, 150000000, 0],
+    "position": [0, -150000000, 0],
     "radius": 6371,
-    "rotation": [0.0072, 1, 0],
-    "rotationSpeed": 0.0,
+    "rotation": [0, 0.4, 0.92],
+    "rotationSpeed": 10,
     "angle": 0.0,
     "atmosphereHeight": 100,
     "atmosphereRayleighScaleHeight": 8,
