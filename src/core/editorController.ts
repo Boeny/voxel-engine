@@ -136,13 +136,13 @@ export class EditorController extends Controller<AppState> {
       moveDir.sub(right);
     }
 
-    const up = this.camera.rotation;
+    const camUp = new Vector3(0, 1, 0).applyQuaternion(this.camera.quaternion);
 
     if (keys['Space']) {
-      moveDir.add(up);
+      moveDir.add(camUp);
     }
     if (keys['KeyC']) {
-      moveDir.sub(up);
+      moveDir.sub(camUp);
     }
 
     // Camera roll
@@ -174,22 +174,20 @@ export class EditorController extends Controller<AppState> {
     }
 
     // Right Drag -> Orbit around focus point
+    // Оси вращения берутся из экранного пространства камеры — нет дёрганий у полюсов
     if (this.isRightDragging && (this.mouseDelta.x !== 0 || this.mouseDelta.y !== 0)) {
-      const angleY = -this.mouseDelta.x * this.sensitivity;
-      const angleX = -this.mouseDelta.y * this.sensitivity;
+      const angleH = -this.mouseDelta.x * this.sensitivity;
+      const angleV = -this.mouseDelta.y * this.sensitivity;
 
-      // Rotate the existing offset vector by the per-frame delta (not absolute angles)
-      const newVector = vectorFromObject.clone().applyAxisAngle(new Vector3(0, 1, 0), angleY);
-      const camRight = new Vector3(1, 0, 0).applyQuaternion(this.camera.quaternion);
-      const candidate = newVector.clone().applyAxisAngle(camRight, angleX);
+      const orbitUp = new Vector3(0, 1, 0).applyQuaternion(this.camera.quaternion);
+      const orbitRight = new Vector3(1, 0, 0).applyQuaternion(this.camera.quaternion);
 
-      // Clamp vertical: don't let camera go within ~5° of poles (world Y) to avoid lookAt flip
-      const elevationFromPole = Math.acos(Math.min(1, Math.abs(candidate.clone().normalize().y)));
-      if (elevationFromPole > 0.09) {
-        newVector.copy(candidate);
-      }
+      const newOffset = vectorFromObject.clone()
+        .applyAxisAngle(orbitUp, angleH)
+        .applyAxisAngle(orbitRight, angleV);
 
-      this.camera.position.copy(selectedObject.position).add(newVector);
+      this.camera.position.copy(selectedObject.position).add(newOffset);
+      this.camera.up.copy(orbitUp);
       this.camera.lookAt(selectedObject.position);
 
       this.mouseDelta.x = 0;
