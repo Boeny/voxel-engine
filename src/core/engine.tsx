@@ -2,6 +2,7 @@ import { useEffect, useRef } from 'react';
 
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { EffectComposer, Bloom, ToneMapping } from '@react-three/postprocessing';
+import { useControls } from 'leva';
 import { ToneMappingMode } from 'postprocessing';
 
 import { HUD } from '@/ui/hud';
@@ -53,7 +54,7 @@ const SceneSetup = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [gameState]);
 
-  useFrame((frameState, delta) => {
+  useFrame((_, delta) => {
     const state = getState();
 
     if (state.gameState === 'playing') {
@@ -66,6 +67,36 @@ const SceneSetup = () => {
   return null;
 };
 
+const PostProcessing = () => {
+  const { enabled, intensity, threshold, smoothing } = useControls('Bloom', {
+    enabled: true,
+    intensity: { value: 0.5, min: 0, max: 5, step: 0.01 },
+    threshold: { value: 6.0, min: 0, max: 10, step: 0.1 },
+    smoothing: { value: 0.3, min: 0, max: 1, step: 0.01 },
+  });
+
+  const effects = [
+    <ToneMapping
+      key={1}
+      mode={ToneMappingMode.AGX}
+    />,
+  ];
+
+  if (enabled) {
+    effects.unshift(
+      <Bloom
+        key={0}
+        luminanceThreshold={threshold}
+        luminanceSmoothing={smoothing}
+        intensity={intensity}
+        mipmapBlur
+      />,
+    );
+  }
+
+  return <EffectComposer>{effects}</EffectComposer>;
+};
+
 export const Engine = () => {
   return (
     <div className="w-full h-full relative bg-black">
@@ -76,15 +107,7 @@ export const Engine = () => {
         gl={{ logarithmicDepthBuffer: true, antialias: true, toneMapping: 0 }}
       >
         <SceneSetup />
-        <EffectComposer>
-          <Bloom
-            luminanceThreshold={1.0}
-            luminanceSmoothing={0.3}
-            intensity={0.8}
-            mipmapBlur
-          />
-          <ToneMapping mode={ToneMappingMode.AGX} />
-        </EffectComposer>
+        <PostProcessing />
       </Canvas>
     </div>
   );
