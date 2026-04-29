@@ -1,6 +1,8 @@
 import { useEffect, useRef } from 'react';
 
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
+import { EffectComposer, Bloom, ToneMapping } from '@react-three/postprocessing';
+import { ToneMappingMode } from 'postprocessing';
 
 import { HUD } from '@/ui/hud';
 import { updateEditorHUD } from '@/ui/hud/editor';
@@ -31,7 +33,7 @@ const SceneSetup = () => {
 
     camera.rotation.order = 'YXZ'; // Allows proper FPS-like rotation without gimbal lock at poles
 
-    gameLogic.current = new GameLogic(camera, scene);
+    gameLogic.current = new GameLogic(camera, scene, (objects) => state.setObjects(objects));
     controller.current = isEditor ? new EditorController(camera, getState) : new PlayerController(camera, getState);
     updateHUD.current = isEditor ? updateEditorHUD : updatePlayerHUD;
 
@@ -71,9 +73,18 @@ export const Engine = () => {
 
       <Canvas
         camera={{ position: [0, 2, 0], fov: 50, far: 1, near: 0.1 }}
-        gl={{ logarithmicDepthBuffer: true, antialias: true }}
+        gl={{ logarithmicDepthBuffer: true, antialias: true, toneMapping: 0 }}
       >
         <SceneSetup />
+        <EffectComposer>
+          <Bloom
+            luminanceThreshold={1.0}
+            luminanceSmoothing={0.3}
+            intensity={0.8}
+            mipmapBlur
+          />
+          <ToneMapping mode={ToneMappingMode.AGX} />
+        </EffectComposer>
       </Canvas>
     </div>
   );

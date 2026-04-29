@@ -6,6 +6,7 @@ import { AppState } from '@/store';
 import { EditorHUDParams } from '@/types';
 
 import { Controller } from './controller';
+import { SelectableObject } from './selectableObject';
 import { add, arrayToVector, mul, norm, sub } from './utils';
 
 export class EditorController extends Controller<AppState> {
@@ -98,7 +99,7 @@ export class EditorController extends Controller<AppState> {
     };
   }
 
-  update(delta: number, selectedObject: { position: Vector3; radius: number } | null) {
+  update(delta: number, selectedObject: SelectableObject | null) {
     if (!selectedObject) {
       return;
     }
@@ -223,7 +224,7 @@ export class EditorController extends Controller<AppState> {
     }
   }
 
-  getHUDParams(selectedObject: { position: Vector3; radius: number } | null): EditorHUDParams {
+  getHUDParams(selectedObject: SelectableObject | null): EditorHUDParams {
     return {
       distanceToFocusPoint: this.getDistanceToObject(selectedObject) * 1000, // m
       isGrounded: this.isGrounded,

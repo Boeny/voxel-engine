@@ -12,43 +12,17 @@ type PlanetParams = {
   angle: number;
   atmosphereHeight: number;
   atmosphereRayleighScaleHeight: number;
-  atmosphereRayleighOpticalDepthDistance: number;
   atmosphereMieScaleHeight: number;
   atmosphereMiePreferredScatteringDirection: number;
   atmosphereMieAbsorption: number;
   atmosphereRaymarchStepsCount: number;
-  skyBrightness: number;
+  secondAtmSteps: number;
   atmosphereUseMie: boolean;
-  atmosphereUseStars: boolean;
+  useTransmittance: boolean;
 };
 
 export class Planet extends SelectableObject {
-  position = new Vector3();
-  rotation = new Vector3();
   rotationSpeed!: number;
-
-  private _radius!: number;
-  get radius(): number {
-    return this._radius;
-  }
-  set radius(v: number) {
-    this._radius = v;
-    this.setShaderParams({
-      uPlanetRadius: v,
-      uAtmosphereRadius: v + this.atmosphereHeight,
-    });
-  }
-
-  private _atmosphereHeight!: number;
-  get atmosphereHeight(): number {
-    return this._atmosphereHeight;
-  }
-  set atmosphereHeight(v: number) {
-    this._atmosphereHeight = v;
-    this.setShaderParams({
-      uAtmosphereRadius: this.radius + v,
-    });
-  }
 
   private _angle!: number;
   get angle(): number {
@@ -62,15 +36,17 @@ export class Planet extends SelectableObject {
   }
 
   // Simple 1:1 shader param mappings
+  @shaderParam('uPlanetAxis') rotation!: Vector3;
+  @shaderParam('uPlanetRadius') radius!: number;
+  @shaderParam('uAtmosphereHeight') atmosphereHeight!: number;
   @shaderParam('uRayleighScaleHeight') atmosphereRayleighScaleHeight!: number;
-  @shaderParam('uRayleighOpticalDepthDistance') atmosphereRayleighOpticalDepthDistance!: number;
   @shaderParam('uMieScaleHeight') atmosphereMieScaleHeight!: number;
   @shaderParam('uMiePreferredScatteringDirection') atmosphereMiePreferredScatteringDirection!: number;
   @shaderParam('uMieBetaAbsorption') atmosphereMieAbsorption!: number;
   @shaderParam('atmSteps') atmosphereRaymarchStepsCount!: number;
-  @shaderParam('uSkyBrightness') skyBrightness!: number;
+  @shaderParam('secondAtmSteps') secondAtmSteps!: number;
   @shaderParam('uUseMie') atmosphereUseMie!: boolean;
-  @shaderParam('uUseStars') atmosphereUseStars!: boolean;
+  @shaderParam('useTransmittance') useTransmittance!: boolean;
 
   constructor(
     { position, rotation, ...other }: PlanetParams,
@@ -79,7 +55,6 @@ export class Planet extends SelectableObject {
     super('planet');
     this.position = arrayToVector(position);
     this.rotation = arrayToVector(rotation);
-    this.setShaderParams({ uPlanetAxis: this.rotation });
 
     Object.entries(other).forEach(([key, value]) => ((this as any)[key] = value));
   }

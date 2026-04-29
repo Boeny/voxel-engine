@@ -7,6 +7,7 @@ import { PlayerHUDParams } from '@/types';
 
 import { Controller } from './controller';
 import { PointerLock } from './pointerLock';
+import { SelectableObject } from './selectableObject';
 import { add, arrayToVector, mul, norm, sub } from './utils';
 
 export class PlayerController extends Controller<AppState> {
@@ -72,7 +73,7 @@ export class PlayerController extends Controller<AppState> {
     return 0;
   }
 
-  update(delta: number, selectedObject: { position: Vector3; radius: number } | null) {
+  update(delta: number, selectedObject: SelectableObject | null) {
     const forward = new Vector3(0, 0, -1).applyQuaternion(this.camera.quaternion);
     forward.y = 0;
     forward.normalize();
@@ -140,7 +141,7 @@ export class PlayerController extends Controller<AppState> {
     this.pointerLock.update(this.camera);
   }
 
-  getHUDParams(selectedObject: { position: Vector3; radius: number } | null): PlayerHUDParams {
+  getHUDParams(selectedObject: SelectableObject | null): PlayerHUDParams {
     return {
       speed: this.velocity.length() * 1000, // m/s
       distanceToFocusPoint: this.getDistanceToObject(selectedObject) * 1000 - this.playerHeight, // m

@@ -21,26 +21,25 @@ uniform float uSunAngularRadius;
 
 uniform vec3  uPlanetCenter;
 uniform float uPlanetRadius;
-uniform float uAtmosphereRadius;
 uniform float uPlanetAngle;
 uniform vec3  uPlanetAxis;
 uniform sampler2D uEarthTexture;
 
-uniform int   atmSteps;
-uniform float uSkyBrightness;
+uniform float uAtmosphereHeight;
+uniform int atmSteps;
+uniform int secondAtmSteps;
 
 uniform vec3  uRayleighBeta;
 uniform float uRayleighScaleHeight;
-uniform float uRayleighOpticalDepthDistance;
 
-uniform vec3  uMieBetaScattering;
+uniform float uMieBetaScattering;
 uniform float uMieBetaAbsorption;
 uniform float uMieScaleHeight;
 uniform float uMiePreferredScatteringDirection;
-
 // ── Feature toggles (controlled at runtime via UI checkboxes) ─────
 uniform bool uUseMie;
 uniform bool uUseStars;
+uniform bool useTransmittance;
 // ─────────────────────────────────────────────────────────────────
 
 // ── Geometry ──────────────────────────────────────────────────────
@@ -94,16 +93,18 @@ vec3 transmittance(float rOD, float mOD) {
     return exp(-max(vec3(0.0), tau));
 }
 
-// Optical depths along the sun ray from startPos (4 fixed light steps)
+// Optical depths along the sun ray from startPos
 vec3 sunOpticalDepth(vec3 startPos, float stepSize) {
     float rOD = 0.0, mOD = 0.0;
     vec3 pos = startPos;
-    for (int j = 0; j < 4; j++) {
+
+    for (int j = 0; j < secondAtmSteps; j++) {
         float h = max(0.0, getAltitude(pos));
         rOD += rayleighDensity(h) * stepSize;
-        if (uUseMie   ) mOD += mieDensity(h)   * stepSize;
+        if (uUseMie) mOD += mieDensity(h) * stepSize;
         pos += uSunDirection * stepSize;
     }
+
     return vec3(rOD, mOD, 0.0);
 }
 
@@ -119,31 +120,40 @@ void sampleAtmosphere(
     outMie = vec3(0.0);
     outRayleighOD = 0.0;
     outMieOD = 0.0;
+    float uAtmosphereRadius = uAtmosphereHeight + uPlanetRadius;
 
     float stepSize = distThrough / float(atmSteps);
     vec3 pos = rayPos + rayDir * (distToAtm + stepSize * 0.5);
 
-    for (int i = 0; i < 32; i++) {
-        if (i >= atmSteps) break;
-
+    for (int i = 0; i < atmSteps; i++) {
         float h = max(0.0, getAltitude(pos));
         float hr = rayleighDensity(h) * stepSize;
-        float hm = uUseMie    ? mieDensity(h)   * stepSize : 0.0;
+        float hm = uUseMie ? mieDensity(h) * stepSize : 0.0;
 
         outRayleighOD += hr;
         outMieOD      += hm;
 
         // How much sunlight reaches this sample point
-        vec2 lightAtmHit = intersectSphere(pos, uSunDirection, uAtmosphereRadius);
-        float lightStep = max(0.0, lightAtmHit.y) / 4.0;
-        vec3 sunOD = sunOpticalDepth(pos + uSunDirection * lightStep * 0.5, lightStep);
+        // Если луч к солнцу упирается в планету — точка в тени, OD = ∞
+        vec3 sunOD;
+        vec2 shadowHit = intersectSphere(pos, uSunDirection, uPlanetRadius);
+        if (shadowHit.x > 0.0) {
+            // Точка в тени планеты. Солнечный свет не доходит.
+            // Просто пропускаем накопление света в этой итерации,
+            // но продолжаем копить OD (для корректности тумана).
+        } else {
+            vec2 lightAtmHit = intersectSphere(pos, uSunDirection, uAtmosphereRadius);
+            float lightStep = max(0.0, lightAtmHit.y) / float(secondAtmSteps);
+            sunOD = sunOpticalDepth(pos + uSunDirection * lightStep * 0.5, lightStep);
 
-        vec3 atten = transmittance(
-            outRayleighOD + sunOD.x,
-            outMieOD      + sunOD.y
-        );
-        outRayleigh += hr * atten;
-        if (uUseMie ) outMie += hm * atten;
+            vec3 atten = useTransmittance ? transmittance(
+                outRayleighOD + sunOD.x,
+                outMieOD      + sunOD.y
+            ) : vec3(1.0);
+
+            outRayleigh += hr * atten;
+            if (uUseMie) outMie += hm * atten;
+        }
 
         pos += rayDir * stepSize;
     }
@@ -164,21 +174,23 @@ float getStars(vec3 rd) {
     float val = fract(sin(seed) * 43758.5453);
     if (val > 0.978) {
         vec2 sp = vec2(fract(sin(seed * 1.1) * 43758.5), fract(sin(seed * 1.2) * 43758.5));
-        return smoothstep(0.12, 0.0, length(cellUv - sp)) * (val - 0.978) * 80.0;
+        return smoothstep(0.12, 0.0, length(cellUv - sp)) * (val - 0.978) * 8.0;
     }
     return 0.0;
 }
 
 // ── Sun disk ──────────────────────────────────────────────────────
-// Sharp physical disk only — glow/corona comes from Mie forward scattering in atmColor.
+// Физический диск с limb darkening. Никакого искусственного ореола —
+// гало вокруг солнца создаётся Ми-рассеянием в sampleAtmosphere.
 
-vec3 getSunDisk(float cosTheta) {
+vec3 getSunDisk(vec3 rayDir) {
+    float cosTheta = dot(rayDir, uSunDirection);
     float a = acos(clamp(cosTheta, -1.0, 1.0));
-    // Limb darkening: solar limb is ~40% dimmer than center
-    float mu = max(0.0, 1.0 - a / uSunAngularRadius);
+    float r = uSunAngularRadius;
+    float mu = max(0.0, 1.0 - a / r);
     float limb = 0.4 + 0.6 * sqrt(mu);
-    float disk = smoothstep(uSunAngularRadius * 1.001, uSunAngularRadius * 0.999, a);
-    return vec3(1.0, 0.97, 0.88) * disk * limb * uSunIntensity * 40.0;
+    float disk = smoothstep(r * 1.02, r * 0.98, a);
+    return vec3(1.0, 0.97, 0.88) * disk * limb * 150.0 * uSunIntensity;
 }
 
 // ── Main ──────────────────────────────────────────────────────────
@@ -204,7 +216,9 @@ void main() {
 
     // Atmosphere segment along ray
     float distToAtm = 0.0, distThrough = 0.0;
+    float uAtmosphereRadius = uAtmosphereHeight + uPlanetRadius;
     vec2 atmHit = intersectSphere(rayPos, rayDir, uAtmosphereRadius);
+
     if (atmHit.y > 0.0) {
         distToAtm = max(0.0, atmHit.x);
         distThrough = atmHit.y - distToAtm;
@@ -225,17 +239,17 @@ void main() {
     float cosTheta = dot(rayDir, uSunDirection);
     float phaseR = 3.0 / (16.0 * PI) * (1.0 + cosTheta * cosTheta);
     float phaseM = 1.0;
-    if (uUseMie ) {
+    if (uUseMie) {
         float g = uMiePreferredScatteringDirection, g2 = g * g;
         phaseM = 3.0 / (8.0 * PI) * ((1.0 - g2) * (1.0 + cosTheta * cosTheta))
                / ((2.0 + g2) * pow(1.0 + g2 - 2.0 * g * cosTheta, 1.5));
     }
 
     vec3 atmColor = totalR * uRayleighBeta * phaseR;
-    if (uUseMie ) atmColor += totalM * uMieBetaScattering * phaseM;
-    atmColor *= uSunIntensity * uSkyBrightness;
+    if (uUseMie) atmColor += totalM * uMieBetaScattering * phaseM;
+    atmColor *= uSunIntensity * 0.6;
 
-    vec3 viewTr = transmittance(rOD, mOD);
+    vec3 viewTr = useTransmittance ? transmittance(rOD, mOD) : vec3(1.0);
     vec3 finalColor = atmColor;
 
     if (hitGround) {
@@ -253,29 +267,28 @@ void main() {
             float glStep = max(0.0, gAtmHit.y) / 4.0;
             if (glStep > 0.0) {
                 vec3 glOD = sunOpticalDepth(hitPos + uSunDirection * glStep * 0.5, glStep);
-                sunTr = transmittance(glOD.x, glOD.y);
+                sunTr = useTransmittance ? transmittance(glOD.x, glOD.y) : vec3(1.0);
             }
         }
 
         float sunDotN = dot(normal, uSunDirection);
         sunTr *= smoothstep(-0.08, 0.12, sunDotN); // soft terminator
 
-        vec3 litGround = atmColor * 0.6                                            // sky ambient
-            + groundColor * sunTr * max(sunDotN, 0.0) * uSunIntensity * 0.8;     // direct sun
+        vec3 litGround = atmColor * 0.15 // sky ambient
+            + groundColor * sunTr * max(sunDotN, 0.0) * uSunIntensity * 0.8; // direct sun
 
         finalColor = litGround * viewTr + atmColor;
     } else {
-        if (uUseStars ) {
+        if (uUseStars) {
             float stars = getStars(rayDir) * smoothstep(0.1, 0.01, dot(atmColor, vec3(0.333)));
             finalColor += vec3(stars);
         }
 
-        // sqrt(viewTr): preserves red tint at sunset while keeping disk visible
-        vec3 sunDiskTr = max(sqrt(viewTr), vec3(0.04, 0.01, 0.002));
-        finalColor += getSunDisk(cosTheta) * sunDiskTr;
+        // Трансмиттанс окрашивает диск в оранжевый/красный на закате
+        finalColor += getSunDisk(rayDir) * viewTr;
     }
 
-    finalColor = 1.0 - exp(-finalColor);
+    // HDR output — тонмаппинг и bloom делаются в постпроцессе
     gl_FragColor = vec4(finalColor, 1.0);
 }
 `;

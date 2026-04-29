@@ -1,21 +1,27 @@
 import { create } from 'zustand';
 
-import { Planet } from './core/planet';
-import { Star } from './core/star';
+import { SelectableObject } from './core/selectableObject';
 
 export type RenderMode = 'atmosphere' | 'voxel';
 
 export interface AppState {
   appState: 'start' | 'scene';
   setAppState: (state: 'start' | 'scene') => void;
+
   gameState: 'playing' | 'paused';
   setGameState: (state: 'playing' | 'paused') => void;
+
   mapSeed: number;
   controlType: 'fpv' | 'editor';
+
   renderMode: RenderMode;
   setRenderMode: (mode: RenderMode) => void;
-  selectedObject: Planet | Star | null;
-  select: (object: Planet | Star | null) => void;
+
+  objects: SelectableObject[];
+  setObjects: (objects: SelectableObject[]) => void;
+
+  selectedObject: SelectableObject | null;
+  select: (object: SelectableObject | null) => void;
 
   playNewMap: () => void;
   createNewMap: () => void;
@@ -24,14 +30,22 @@ export interface AppState {
 export const useStore = create<AppState>((set) => ({
   appState: 'start',
   setAppState: (appState) => set({ appState }),
+
   gameState: 'paused',
   setGameState: (gameState) => set({ gameState }),
+
   mapSeed: 0,
   controlType: 'editor',
+
   renderMode: 'atmosphere',
   setRenderMode: (renderMode) => set({ renderMode }),
+
+  objects: [],
+  setObjects: (objects) => set({ objects }),
+
   selectedObject: null,
   select: (selectedObject) => set({ selectedObject }),
+
   playNewMap: () => set((state) => getNewPlayingState(state, 'fpv')),
   createNewMap: () => set((state) => getNewPlayingState(state, 'editor')),
 }));

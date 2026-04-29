@@ -14,10 +14,10 @@ function PlanetParams({ selectedObject }: { selectedObject: Planet }) {
         selectedObject.atmosphereUseMie = v;
       },
     },
-    Stars: {
-      value: selectedObject.atmosphereUseStars,
+    'Light Transmittance (color extinction)': {
+      value: selectedObject.useTransmittance,
       onChange: (v: boolean) => {
-        selectedObject.atmosphereUseStars = v;
+        selectedObject.useTransmittance = v;
       },
     },
   }));
@@ -28,13 +28,12 @@ function PlanetParams({ selectedObject }: { selectedObject: Planet }) {
       atmosphereHeight: [0, 300, 1],
       rotationSpeed: [0, 100, 0.01],
       angle: [0, 360, 0.01],
-      skyBrightness: [0, 50, 0.1],
       atmosphereRayleighScaleHeight: [5, 20, 0.1], // 5-8 km (standart 8), density falloff for blue sky: 25% of atmosphere thickness
-      atmosphereRayleighOpticalDepthDistance: [1, 100, 0.1],
       atmosphereMieScaleHeight: [0, 5, 0.1], // 2-5 km (standart 1,5-2,5), density falloff for sun halo: 5% of atmosphere thickness
       atmosphereMiePreferredScatteringDirection: [-1, 1, 0.01], // > 0: Sun halo, 0.75- 0.95
       atmosphereMieAbsorption: [0, 1, 0.1], // standart - 10% of scattering
       atmosphereRaymarchStepsCount: [1, 128, 8], // 16
+      secondAtmSteps: [1, 32, 4],
     }) as any;
   });
 
@@ -44,7 +43,7 @@ function PlanetParams({ selectedObject }: { selectedObject: Planet }) {
 function StarParams({ selectedObject }: { selectedObject: Star }) {
   useControls('Selected Object Settings', () => {
     return getControlParams(selectedObject, {
-      intensity: [0, 20, 0.01],
+      intensity: [1, 100, 0.01],
     }) as any;
   });
 
@@ -66,6 +65,58 @@ function SelectedObjectParams() {
 }
 
 const stopPropagation = (e: any) => e.stopPropagation();
+
+function SelectableObjects() {
+  const objects = useStore((state) => state.objects);
+  const select = useStore((state) => state.select);
+  const selectedObject = useStore((state) => state.selectedObject);
+
+  return (
+    <div
+      className="absolute left-4 top-1/2 -translate-y-1/2 z-10 flex flex-col gap-1.5"
+      onPointerDown={stopPropagation}
+      onPointerUp={stopPropagation}
+      onMouseDown={stopPropagation}
+      onMouseUp={stopPropagation}
+      onClick={stopPropagation}
+    >
+      {objects.map((obj) => {
+        const isSelected = selectedObject === obj;
+
+        return (
+          <button
+            key={obj.type}
+            onClick={() => select(isSelected ? null : obj)}
+            className={[
+              'flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-mono transition-all duration-150 cursor-pointer select-none',
+              isSelected
+                ? 'bg-blue-500/30 border border-blue-400/70 text-blue-100 shadow-lg shadow-blue-900/30'
+                : 'bg-black/40 border border-white/10 text-white/70 hover:bg-white/10 hover:border-white/25 hover:text-white',
+            ].join(' ')}
+          >
+            <span className="capitalize tracking-wide">{obj.type}</span>
+            {isSelected && (
+              <span className="ml-auto text-blue-400/80">
+                <svg
+                  width="10"
+                  height="10"
+                  viewBox="0 0 10 10"
+                  fill="currentColor"
+                >
+                  <circle
+                    cx="5"
+                    cy="5"
+                    r="3"
+                  />
+                </svg>
+              </span>
+            )}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
 
 export function EditorHUD() {
   return (
@@ -105,6 +156,8 @@ export function EditorHUD() {
         <div id="hud-grounded"></div>
         <div id="hud-position"></div>
       </div>
+
+      <SelectableObjects />
     </>
   );
 }

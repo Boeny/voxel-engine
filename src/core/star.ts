@@ -1,5 +1,3 @@
-import { Vector3 } from 'three';
-
 import { shaderParam } from './decorators';
 import { SelectableObject } from './selectableObject';
 import { arrayToVector } from './utils';
@@ -11,10 +9,7 @@ type StarParams = {
 };
 
 export class Star extends SelectableObject {
-  radius!: number;
-  position: Vector3;
-
-  @shaderParam('uSunIntensity') intensity!: boolean;
+  @shaderParam('uSunIntensity') intensity!: number;
 
   constructor(
     { position, ...other }: StarParams,

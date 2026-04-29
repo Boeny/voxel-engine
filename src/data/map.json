@@ -2,7 +2,7 @@
   "star": {
     "position": [0, 0, 0],
     "radius": 695700,
-    "intensity": 5
+    "intensity": 9
   },
   "planet": {
     "position": [0, 150000000, 0],
@@ -10,15 +10,14 @@
     "rotation": [0.0072, 1, 0],
     "rotationSpeed": 0.0,
     "angle": 0.0,
-    "atmosphereHeight": 200,
-    "atmosphereRayleighScaleHeight": 15,
-    "atmosphereRayleighOpticalDepthDistance": 1500,
+    "atmosphereHeight": 100,
+    "atmosphereRayleighScaleHeight": 8,
     "atmosphereMieScaleHeight": 1.5,
-    "atmosphereMiePreferredScatteringDirection": 0.85,
-    "atmosphereMieAbsorption": 0.1,
-    "atmosphereRaymarchStepsCount": 16,
-    "skyBrightness": 7.0,
+    "atmosphereMiePreferredScatteringDirection": 0.76,
+    "atmosphereMieAbsorption": 0.0,
+    "atmosphereRaymarchStepsCount": 64,
+    "secondAtmSteps": 1,
     "atmosphereUseMie": true,
-    "atmosphereUseStars": true
+    "useTransmittance": true
   }
 }
