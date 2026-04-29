@@ -68,7 +68,7 @@ vec3 rotateAround(vec3 v, vec3 axis, float angle) {
 
 // Equirectangular UV for arbitrary rotation axis
 vec2 getPlanetUV(vec3 hitPos) {
-    vec3 n = normalize(rotateAround(hitPos - uPlanetCenter, uPlanetAxis, uPlanetAngle));
+    vec3 n = normalize(rotateAround(hitPos - uPlanetCenter, uPlanetAxis, -uPlanetAngle));
     float cosLat = dot(n, uPlanetAxis);
     float texV = acos(clamp(cosLat, -1.0, 1.0)) / PI;
     vec3 ref = abs(uPlanetAxis.x) < 0.9 ? vec3(1.0, 0.0, 0.0) : vec3(0.0, 0.0, 1.0);

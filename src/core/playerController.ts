@@ -17,6 +17,8 @@ export class PlayerController extends Controller<AppState> {
   // state
   velocity = new Vector3();
   isGrounded = true;
+  private pitch = 0;
+  private lastForward = new Vector3(0, 0, 1); // forward on tangent plane, persists between frames
 
   // config
   speed = 5; // m/s
@@ -26,8 +28,15 @@ export class PlayerController extends Controller<AppState> {
 
   constructor(camera: Camera, getState: () => AppState) {
     super(camera, getState);
-    camera.position.copy(arrayToVector(mapData.planet.position).add(new Vector3(mapData.planet.radius + this.playerHeight / 1000, 0, 0)));
-    camera.rotation.set(0, 0, 0); // Camera looks forward by default
+
+    // Spawn on planet surface along +Y (dayside when star is above)
+    const planetPos = arrayToVector(mapData.planet.position);
+    const spawnDir = new Vector3(0, 1, 0);
+    camera.position.copy(planetPos).addScaledVector(spawnDir, mapData.planet.radius + this.playerHeight / 1000);
+
+    // Orient camera: stand on surface, look along Z
+    camera.up.copy(spawnDir);
+    camera.lookAt(add(camera.position, new Vector3(0, 0, 1)));
   }
 
   switchMenu() {
@@ -57,7 +66,6 @@ export class PlayerController extends Controller<AppState> {
     const cleanupMouseEvents = this.pointerLock.setupEvents({
       onPointerLockChange: (isLocked) => {
         if (!isLocked) {
-          // in the menu mode
           this.onMouseUnlock();
         }
       },
@@ -74,16 +82,49 @@ export class PlayerController extends Controller<AppState> {
   }
 
   update(delta: number, selectedObject: SelectableObject | null) {
-    const forward = new Vector3(0, 0, -1).applyQuaternion(this.camera.quaternion);
-    forward.y = 0;
+    if (!selectedObject) {
+      this.isGrounded = false;
+      this.camera.position.add(this.velocity);
+
+      return;
+    }
+
+    // Local surface frame
+    const up = norm(sub(this.camera.position, selectedObject.position));
+
+    // ── Mouse look in local frame ───────────────────────────────
+    const yawDelta = -this.pointerLock.mouseDelta.x * this.pointerLock.sensitivity;
+    const pitchDelta = -this.pointerLock.mouseDelta.y * this.pointerLock.sensitivity;
+    this.pointerLock.mouseDelta.x = 0;
+    this.pointerLock.mouseDelta.y = 0;
+
+    // Project stored forward onto current tangent plane (handles planet rotation)
+    let forward = this.lastForward.clone().addScaledVector(up, -this.lastForward.dot(up));
+    if (forward.lengthSq() < 0.001) {
+      const ref = Math.abs(up.x) < 0.9 ? new Vector3(1, 0, 0) : new Vector3(0, 0, 1);
+      forward = ref.clone().addScaledVector(up, -ref.dot(up));
+    }
     forward.normalize();
 
-    const right = new Vector3(1, 0, 0).applyQuaternion(this.camera.quaternion);
-    right.y = 0;
-    right.normalize();
+    // Apply yaw (rotate forward around local up)
+    forward.applyAxisAngle(up, yawDelta);
+    this.lastForward.copy(forward);
+
+    // Apply pitch with clamping
+    const limit = Math.PI / 2 - 0.01;
+    this.pitch = Math.max(-limit, Math.min(limit, this.pitch + pitchDelta));
+
+    // Build look direction from stored forward + pitch
+    const newLookDir = forward.clone().multiplyScalar(Math.cos(this.pitch)).addScaledVector(up, Math.sin(this.pitch));
+
+    // Set camera orientation
+    this.camera.up.copy(up);
+    this.camera.lookAt(this.camera.position.clone().add(newLookDir));
+
+    // ── Movement in tangent plane ───────────────────────────────
+    const right = new Vector3().crossVectors(forward, up).normalize();
 
     const moveDir = new Vector3();
-
     if (keys['KeyW']) {
       moveDir.add(forward);
     }
@@ -97,54 +138,49 @@ export class PlayerController extends Controller<AppState> {
       moveDir.sub(right);
     }
 
-    // Friction (constantForce) — always terminal velocity
-    this.velocity.x *= Math.pow(0.5, delta * 60);
-    this.velocity.z *= Math.pow(0.5, delta * 60);
+    // Friction
+    const tangentVel = this.velocity.clone().addScaledVector(up, -this.velocity.dot(up));
+    const radialVel = up.clone().multiplyScalar(this.velocity.dot(up));
+    tangentVel.multiplyScalar(Math.pow(0.5, delta * 60));
+    this.velocity.copy(tangentVel).add(radialVel);
 
-    // Acceleration (constantForce)
+    // Acceleration
     if (moveDir.lengthSq() > 0) {
       moveDir.normalize().multiplyScalar((this.speed / 1000) * delta);
-      this.velocity.x += moveDir.x;
-      this.velocity.z += moveDir.z;
+      this.velocity.add(moveDir);
     }
 
-    if (selectedObject) {
-      let vectorFromObject = sub(this.camera.position, selectedObject.position);
-      let normal = norm(vectorFromObject);
+    // Gravity
+    const gravityVector = mul(up, -(this.gravity / 1000) * delta);
+    this.velocity.add(gravityVector);
 
-      const gravityVector = mul(normal, -(this.gravity / 1000) * delta);
-      this.velocity.add(gravityVector);
+    // Apply velocity
+    this.camera.position.add(this.velocity);
 
-      this.camera.position.add(this.velocity);
-      vectorFromObject = sub(this.camera.position, selectedObject.position);
-      normal = norm(vectorFromObject);
+    // Recompute normal after position change
+    const vectorFromObject = sub(this.camera.position, selectedObject.position);
+    const newNormal = norm(vectorFromObject);
 
-      const distanceToCameraOnGround = selectedObject.radius + this.playerHeight / 1000;
-      this.isGrounded = vectorFromObject.length() <= distanceToCameraOnGround;
-      if (this.isGrounded) {
-        this.camera.position.copy(add(selectedObject.position, mul(normal, distanceToCameraOnGround)));
-        const verticalVelocity = mul(normal, this.velocity.dot(normal));
-        this.velocity.sub(verticalVelocity); // horizontal velocity
-      }
+    // Ground collision
+    const distanceToCameraOnGround = selectedObject.radius + this.playerHeight / 1000;
+    this.isGrounded = vectorFromObject.length() <= distanceToCameraOnGround;
+    if (this.isGrounded) {
+      this.camera.position.copy(add(selectedObject.position, mul(newNormal, distanceToCameraOnGround)));
+      const verticalVelocity = mul(newNormal, this.velocity.dot(newNormal));
+      this.velocity.sub(verticalVelocity);
+    }
 
-      // Jump (instantForce) — only if grounded, without delta
-      if (keys['Space'] && this.isGrounded) {
-        this.isGrounded = false;
-        this.velocity.add(mul(normal, this.jumpForce));
-      }
-    } else {
+    // Jump
+    if (keys['Space'] && this.isGrounded) {
       this.isGrounded = false;
-      this.camera.position.add(this.velocity);
+      this.velocity.add(mul(newNormal, this.jumpForce));
     }
-
-    // mouse looking
-    this.pointerLock.update(this.camera);
   }
 
   getHUDParams(selectedObject: SelectableObject | null): PlayerHUDParams {
     return {
-      speed: this.velocity.length() * 1000, // m/s
-      distanceToFocusPoint: this.getDistanceToObject(selectedObject) * 1000 - this.playerHeight, // m
+      speed: this.velocity.length() * 1000,
+      distanceToFocusPoint: this.getDistanceToObject(selectedObject) * 1000 - this.playerHeight,
       isGrounded: this.isGrounded,
     };
   }

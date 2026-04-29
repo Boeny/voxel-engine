@@ -95,8 +95,8 @@ export class GameLogic {
 
   update(delta: number) {
     if (this.planet.rotationSpeed > 0) {
-      const angleDelta = angleToRad(this.planet.rotationSpeed) * delta;
-      this.planet.rotate(angleDelta);
+      const angleDeltaDegree = this.planet.rotationSpeed * delta; // degrees
+      this.planet.rotate(angleDeltaDegree);
 
       // Determine how much the planet "drags" the camera along with it.
       const altitude = Math.max(0, this.camera.position.distanceTo(this.planet.position) - this.planet.radius);
@@ -114,16 +114,18 @@ export class GameLogic {
         dragFactor = 0.0;
       }
 
-      const cameraAngleDelta = angleDelta * dragFactor;
+      const cameraAngleDelta = angleToRad(angleDeltaDegree) * dragFactor; // radians
       if (cameraAngleDelta !== 0) {
-        // Rotate camera position around Y axis relative to pivot
-        const pivot = this.planet.position; // TODO: rotate camera WITH the planet
+        // Rotate camera position around planet's rotation axis
+        const pivot = this.planet.position;
         const pos = sub(this.camera.position, pivot);
         pos.applyAxisAngle(this.planet.rotation, cameraAngleDelta);
         this.camera.position.copy(pivot).add(pos);
 
-        // Rotate camera yaw to turn WITH the planet (subtract: planet rotates CCW → texture moves CW → camera turns right)
-        this.camera.rotation.y -= cameraAngleDelta;
+        // Rotate camera orientation around the same axis (for editor mode; player overrides via lookAt)
+        this.camera.rotateOnWorldAxis(this.planet.rotation, cameraAngleDelta);
+        // Prevent roll accumulation — keep camera aligned with gravity
+        //this.camera.rotation.z = 0;
       }
     }
 

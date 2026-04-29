@@ -58,8 +58,8 @@ const SceneSetup = () => {
     const state = getState();
 
     if (state.gameState === 'playing') {
-      controller.current?.update(delta, state.selectedObject);
       gameLogic.current?.update(delta);
+      controller.current?.update(delta, state.selectedObject);
       updateHUD.current(controller.current?.getHUDParams(state.selectedObject));
     }
   });
