@@ -2,7 +2,7 @@ import { Vector3 } from 'three';
 
 function getDistanceForUnits(value: number, units: string): string | undefined {
   if (value < 10) {
-    return `${value.toFixed(1)} ${units}`;
+    return `${value.toFixed(1)}${units}`;
   }
   if (value < 1000) {
     return `${value.toFixed(0)}${units}`;
@@ -75,4 +75,10 @@ export function arrayToVector(array: number[]): Vector3 {
 
 export function mapObjectValues<K extends string, V1, V2>(obj: Record<K, V1>, fn: (key: K, value: V1) => V2): Record<K, V2> {
   return Object.fromEntries(Object.entries<V1>(obj).map(([key, value]) => [key, fn(key as K, value)])) as Record<K, V2>;
+}
+
+// ----
+
+export function setDOMContent(id: string, content: string | number) {
+  document.getElementById(id)!.innerText = String(content);
 }

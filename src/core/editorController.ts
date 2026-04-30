@@ -3,11 +3,10 @@ import { Camera, Vector3 } from 'three';
 import mapData from '@/data/map.json';
 import { keys, setupKeyboardEvents } from '@/events';
 import { AppState } from '@/store';
-import { EditorHUDParams } from '@/types';
 
 import { Controller } from './controller';
 import { SelectableObject } from './selectableObject';
-import { add, arrayToVector, mul, norm, sub } from './utils';
+import { add, arrayToVector, getDistanceText, mul, norm, setDOMContent, sub } from './utils';
 
 export class EditorController extends Controller<AppState> {
   // config
@@ -220,11 +219,11 @@ export class EditorController extends Controller<AppState> {
     }
   }
 
-  getHUDParams(selectedObject: SelectableObject | null): EditorHUDParams {
-    return {
-      distanceToFocusPoint: this.getDistanceToObject(selectedObject) * 1000, // m
-      isGrounded: this.isGrounded,
-      cameraPosition: this.camera.position,
-    };
+  updateHUD(selectedObject: SelectableObject | null) {
+    setDOMContent('hud-altitude', `Altitude: ${getDistanceText(this.getDistanceToObject(selectedObject) * 1000)}`);
+    setDOMContent('hud-grounded', `Is Grounded: ${this.isGrounded}`);
+
+    const { x, y, z } = this.camera.position;
+    setDOMContent('hud-position', `Position: (${x.toFixed(2)}, ${y.toFixed(2)}, ${z.toFixed(2)})`);
   }
 }

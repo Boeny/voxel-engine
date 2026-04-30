@@ -3,12 +3,11 @@ import { Camera, Vector3, WebGLRenderer } from 'three';
 import mapData from '@/data/map.json';
 import { keys, setupKeyboardEvents } from '@/events';
 import { AppState } from '@/store';
-import { PlayerHUDParams } from '@/types';
 
 import { Controller } from './controller';
 import { PointerLock } from './pointerLock';
 import { SelectableObject } from './selectableObject';
-import { add, arrayToVector, mul, norm, sub } from './utils';
+import { add, arrayToVector, getDistanceText, mul, norm, setDOMContent, sub } from './utils';
 
 export class PlayerController extends Controller<AppState> {
   // components
@@ -177,11 +176,9 @@ export class PlayerController extends Controller<AppState> {
     }
   }
 
-  getHUDParams(selectedObject: SelectableObject | null): PlayerHUDParams {
-    return {
-      speed: this.velocity.length() * 1000,
-      distanceToFocusPoint: this.getDistanceToObject(selectedObject) * 1000 - this.playerHeight,
-      isGrounded: this.isGrounded,
-    };
+  updateHUD(selectedObject: SelectableObject | null) {
+    setDOMContent('hud-altitude', `Altitude: ${getDistanceText(this.getDistanceToObject(selectedObject) * 1000 - this.playerHeight)}`);
+    setDOMContent('hud-speed', `Speed: ${getDistanceText(this.velocity.length() * 1000)}/s`);
+    setDOMContent('hud-grounded', `Is Grounded: ${this.isGrounded}`);
   }
 }

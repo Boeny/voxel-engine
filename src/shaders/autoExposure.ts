@@ -1,4 +1,5 @@
 import { Effect, BlendFunction } from 'postprocessing';
+import { setDOMContent } from '@/core/utils';
 import {
   FloatType,
   Mesh,
@@ -90,6 +91,8 @@ export class AutoExposureEffect extends Effect {
   tauDark: number; // adaptation speed to darkness (slow, 2-3s)
   useBlueDark: boolean;
 
+  currentAdaptedLuminance = 1.0;
+
   constructor() {
     super('AutoExposureEffect', mainFragShader, {
       blendFunction: BlendFunction.SET,
@@ -155,6 +158,10 @@ export class AutoExposureEffect extends Effect {
     this.uniforms.get('useBlueDark')!.value = this.useBlueDark;
     this.uniforms.get('minAdaptLuminance')!.value = this.minAdaptLuminance;
     this.uniforms.get('maxAdaptLuminance')!.value = this.maxAdaptLuminance;
+  }
+
+  updateHUD() {
+    setDOMContent('hud-exposure', `Exposure: ${this.currentAdaptedLuminance.toFixed(4)}`);
   }
 
   dispose() {

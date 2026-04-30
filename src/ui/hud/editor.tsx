@@ -2,9 +2,9 @@ import { Leva, useControls } from 'leva';
 
 import { Planet } from '@/core/planet';
 import { Star } from '@/core/star';
-import { getControlParams, getDistanceText } from '@/core/utils';
+import { getControlParams } from '@/core/utils';
+import { AutoExposureEffect } from '@/shaders/autoExposure';
 import { useStore } from '@/store';
-import { EditorHUDParams } from '@/types';
 
 function PlanetParams({ selectedObject }: { selectedObject: Planet }) {
   useControls('Atmosphere Features', () => ({
@@ -118,7 +118,19 @@ function SelectableObjects() {
   );
 }
 
-export function EditorHUD() {
+export function EditorHUD({ autoExposure }: { autoExposure: AutoExposureEffect }) {
+  useControls('Eye / Bloom', () => {
+    return getControlParams(autoExposure, {
+      targetDay: [0.01, 1.0, 0.01],
+      targetNight: [0.01, 1.0, 0.01],
+      tauLight: [0.1, 3.0, 0.01],
+      tauDark: [0.5, 5.0, 0.01],
+      minAdaptLuminance: [0.0001, 1, 0.001],
+      maxAdaptLuminance: [10.0, 500.0, 1.0],
+      useBlueDark: [],
+    });
+  });
+
   return (
     <>
       <div
@@ -155,15 +167,10 @@ export function EditorHUD() {
         <div id="hud-altitude"></div>
         <div id="hud-grounded"></div>
         <div id="hud-position"></div>
+        <div id="hud-exposure"></div>
       </div>
 
       <SelectableObjects />
     </>
   );
-}
-
-export function updateEditorHUD({ distanceToFocusPoint, isGrounded, cameraPosition: { x, y, z } }: EditorHUDParams) {
-  document.getElementById('hud-altitude')!.innerText = `Altitude: ${getDistanceText(distanceToFocusPoint)}`;
-  document.getElementById('hud-grounded')!.innerText = `Is Grounded: ${isGrounded}`;
-  document.getElementById('hud-position')!.innerText = `Position: (${x.toFixed(2)}, ${y.toFixed(2)}, ${z.toFixed(2)})`;
 }

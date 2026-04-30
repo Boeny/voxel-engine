@@ -6,15 +6,14 @@ import { useControls } from 'leva';
 
 import { AutoExposureEffect } from '@/shaders/autoExposure';
 import { HUD } from '@/ui/hud';
-import { updateEditorHUD } from '@/ui/hud/editor';
-import { updatePlayerHUD } from '@/ui/hud/player';
 
 import { AppState, useStore } from '../store';
 
 import { EditorController } from './editorController';
 import { GameLogic } from './logic';
 import { PlayerController } from './playerController';
-import { getControlParams } from './utils';
+
+const autoExposureEffect = new AutoExposureEffect();
 
 function getState(): AppState {
   return useStore.getState();
@@ -26,7 +25,6 @@ const SceneSetup = () => {
 
   const gameLogic = useRef<GameLogic | null>(null);
   const controller = useRef<PlayerController | EditorController | null>(null);
-  const updateHUD = useRef<(params: any) => void>(() => {});
 
   // Initialize Game Logic and Controller only once per map session
   useEffect(() => {
@@ -37,7 +35,6 @@ const SceneSetup = () => {
 
     gameLogic.current = new GameLogic(camera, scene, (objects) => state.setObjects(objects));
     controller.current = isEditor ? new EditorController(camera, getState) : new PlayerController(camera, getState);
-    updateHUD.current = isEditor ? updateEditorHUD : updatePlayerHUD;
 
     state.select(gameLogic.current.planet);
 
@@ -61,14 +58,16 @@ const SceneSetup = () => {
     if (state.gameState === 'playing') {
       gameLogic.current?.update(delta);
       controller.current?.update(delta, state.selectedObject);
-      updateHUD.current(controller.current?.getHUDParams(state.selectedObject));
+      controller.current?.updateHUD(state.selectedObject);
+
+      if (state.controlType === 'editor') {
+        autoExposureEffect.updateHUD();
+      }
     }
   });
 
   return null;
 };
-
-const autoExposureEffect = new AutoExposureEffect();
 
 const PostProcessing = () => {
   const bloom = useControls('Bloom', {
@@ -114,7 +113,7 @@ const PostProcessing = () => {
 export const Engine = () => {
   return (
     <div className="w-full h-full relative bg-black">
-      <HUD />
+      <HUD autoExposure={autoExposureEffect} />
 
       <Canvas
         camera={{ position: [0, 2, 0], fov: 50, far: 1, near: 0.1 }}
