@@ -1,7 +1,7 @@
-import { useEffect, useMemo, useRef } from 'react';
+import { useEffect, useRef } from 'react';
 
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
-import { EffectComposer, Bloom } from '@react-three/postprocessing';
+import { EffectComposer } from '@react-three/postprocessing';
 import { useControls } from 'leva';
 
 import { AutoExposureEffect } from '@/shaders/autoExposure';
@@ -81,44 +81,11 @@ const SceneSetup = () => {
 };
 
 const PostProcessing = () => {
-  const bloom = useControls('Bloom', {
-    enabled: true,
-    intensity: { value: 3, min: 0, max: 5, step: 0.01 },
-    threshold: { value: 0, min: 0, max: 10, step: 0.1 },
-    smoothing: { value: 1, min: 0, max: 1, step: 0.01 },
-  });
-
-  useControls('Eye Adaptation', () => {
-    return getControlParams(autoExposureEffect, {
-      targetDay: [0.01, 1.0, 0.01],
-      targetNight: [0.01, 1.0, 0.01],
-      tauLight: [0.1, 3.0, 0.01],
-      tauDark: [0.5, 5.0, 0.01],
-      minAdaptLuminance: [0.0001, 1, 0.001],
-      maxAdaptLuminance: [10.0, 500.0, 1.0],
-      useBlueDark: [],
-    });
-  });
-
-  const effects = useMemo(() => {
-    return [
-      bloom.enabled ? (
-        <Bloom
-          key="bloom"
-          luminanceThreshold={bloom.threshold}
-          luminanceSmoothing={bloom.smoothing}
-          intensity={bloom.intensity}
-          mipmapBlur
-        />
-      ) : null,
-      <primitive
-        key="exposure"
-        object={autoExposureEffect}
-      />,
-    ].filter(Boolean);
-  }, [bloom.enabled, bloom.threshold, bloom.smoothing, bloom.intensity]);
-
-  return <EffectComposer>{effects as any}</EffectComposer>;
+  return (
+    <EffectComposer>
+      <primitive object={autoExposureEffect} />
+    </EffectComposer>
+  );
 };
 
 export const Engine = () => {
