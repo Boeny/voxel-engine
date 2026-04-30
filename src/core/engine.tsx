@@ -1,10 +1,10 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useMemo, useRef } from 'react';
 
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
-import { EffectComposer, Bloom, ToneMapping } from '@react-three/postprocessing';
+import { EffectComposer, Bloom } from '@react-three/postprocessing';
 import { useControls } from 'leva';
-import { ToneMappingMode } from 'postprocessing';
 
+import { AutoExposureEffect } from '@/shaders/autoExposure';
 import { HUD } from '@/ui/hud';
 import { updateEditorHUD } from '@/ui/hud/editor';
 import { updatePlayerHUD } from '@/ui/hud/player';
@@ -70,43 +70,55 @@ const SceneSetup = () => {
 const PostProcessing = () => {
   const bloom = useControls('Bloom', {
     enabled: true,
-    intensity: { value: 0.5, min: 0, max: 5, step: 0.01 },
-    threshold: { value: 6.0, min: 0, max: 10, step: 0.1 },
-    smoothing: { value: 0.3, min: 0, max: 1, step: 0.01 },
+    intensity: { value: 3, min: 0, max: 5, step: 0.01 },
+    threshold: { value: 0, min: 0, max: 10, step: 0.1 },
+    smoothing: { value: 1, min: 0, max: 1, step: 0.01 },
   });
 
-  const exposure = useControls('Auto Exposure', {
-    adaptive: true,
-    adaptationRate: { value: 1.0, min: 0.1, max: 5.0, step: 0.1 },
-    middleGrey: { value: 0.6, min: 0.01, max: 2.0, step: 0.01 },
-    averageLuminance: { value: 1.0, min: 0.01, max: 5.0, step: 0.01 },
+  const exposure = useControls('Eye Adaptation', {
+    targetLuminance: { value: 0.18, min: 0.01, max: 1.0, step: 0.01 },
+    tauLight: { value: 0.5, min: 0.1, max: 3.0, step: 0.1 },
+    tauDark: { value: 2.0, min: 0.5, max: 5.0, step: 0.1 },
+    minAdaptLuminance: { value: 0.001, min: 0.0001, max: 0.1, step: 0.001 },
+    maxAdaptLuminance: { value: 100.0, min: 10.0, max: 500.0, step: 10.0 },
   });
 
-  const effects = [
-    <ToneMapping
-      key="tone"
-      mode={ToneMappingMode.AGX}
-      adaptive={exposure.adaptive}
-      adaptationRate={exposure.adaptationRate}
-      middleGrey={exposure.middleGrey}
-      averageLuminance={exposure.averageLuminance}
-      resolution={256}
-    />,
-  ];
+  const autoExposureEffect = useMemo(() => new AutoExposureEffect(), []);
 
-  if (bloom.enabled) {
-    effects.unshift(
-      <Bloom
-        key="bloom"
-        luminanceThreshold={bloom.threshold}
-        luminanceSmoothing={bloom.smoothing}
-        intensity={bloom.intensity}
-        mipmapBlur
+  useMemo(() => {
+    autoExposureEffect.targetLuminance = exposure.targetLuminance;
+    autoExposureEffect.tauLight = exposure.tauLight;
+    autoExposureEffect.tauDark = exposure.tauDark;
+    autoExposureEffect.minAdaptLuminance = exposure.minAdaptLuminance;
+    autoExposureEffect.maxAdaptLuminance = exposure.maxAdaptLuminance;
+  }, [
+    autoExposureEffect,
+    exposure.targetLuminance,
+    exposure.tauLight,
+    exposure.tauDark,
+    exposure.minAdaptLuminance,
+    exposure.maxAdaptLuminance,
+  ]);
+
+  const effects = useMemo(() => {
+    return [
+      bloom.enabled ? (
+        <Bloom
+          key="bloom"
+          luminanceThreshold={bloom.threshold}
+          luminanceSmoothing={bloom.smoothing}
+          intensity={bloom.intensity}
+          mipmapBlur
+        />
+      ) : null,
+      <primitive
+        key="exposure"
+        object={autoExposureEffect}
       />,
-    );
-  }
+    ].filter(Boolean);
+  }, [autoExposureEffect, bloom.enabled, bloom.threshold, bloom.smoothing, bloom.intensity]);
 
-  return <EffectComposer>{effects}</EffectComposer>;
+  return <EffectComposer>{effects as any}</EffectComposer>;
 };
 
 export const Engine = () => {
