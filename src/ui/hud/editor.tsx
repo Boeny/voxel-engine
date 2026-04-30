@@ -34,7 +34,7 @@ function PlanetParams({ selectedObject }: { selectedObject: Planet }) {
       atmosphereMieAbsorption: [0, 1, 0.1], // standart - 10% of scattering
       atmosphereRaymarchStepsCount: [1, 128, 8], // 16
       secondAtmSteps: [1, 32, 4],
-    }) as any;
+    });
   });
 
   return null;
@@ -44,7 +44,7 @@ function StarParams({ selectedObject }: { selectedObject: Star }) {
   useControls('Selected Object Settings', () => {
     return getControlParams(selectedObject, {
       intensity: [1, 100, 0.01],
-    }) as any;
+    });
   });
 
   return null;

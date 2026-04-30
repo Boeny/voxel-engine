@@ -134,14 +134,9 @@ void sampleAtmosphere(
         outMieOD      += hm;
 
         // How much sunlight reaches this sample point
-        // Если луч к солнцу упирается в планету — точка в тени, OD = ∞
         vec3 sunOD;
         vec2 shadowHit = intersectSphere(pos, uSunDirection, uPlanetRadius);
-        if (shadowHit.x > 0.0) {
-            // Точка в тени планеты. Солнечный свет не доходит.
-            // Просто пропускаем накопление света в этой итерации,
-            // но продолжаем копить OD (для корректности тумана).
-        } else {
+        if (shadowHit.x <= 0.0) {
             vec2 lightAtmHit = intersectSphere(pos, uSunDirection, uAtmosphereRadius);
             float lightStep = max(0.0, lightAtmHit.y) / float(secondAtmSteps);
             sunOD = sunOpticalDepth(pos + uSunDirection * lightStep * 0.5, lightStep);
@@ -174,15 +169,13 @@ float getStars(vec3 rd) {
     float val = fract(sin(seed) * 43758.5453);
     if (val > 0.978) {
         vec2 sp = vec2(fract(sin(seed * 1.1) * 43758.5), fract(sin(seed * 1.2) * 43758.5));
-        return smoothstep(0.12, 0.0, length(cellUv - sp)) * (val - 0.978) * 8.0;
+        return smoothstep(0.12, 0.0, length(cellUv - sp)) * (val - 0.978) * 1.0; // stars should have weak light, but more than bloom min edge
     }
     return 0.0;
 }
 
 // ── Sun disk ──────────────────────────────────────────────────────
-// Физический диск с limb darkening. Никакого искусственного ореола —
-// гало вокруг солнца создаётся Ми-рассеянием в sampleAtmosphere.
-
+// Physical disk with limb darkening
 vec3 getSunDisk(vec3 rayDir) {
     float cosTheta = dot(rayDir, uSunDirection);
     float a = acos(clamp(cosTheta, -1.0, 1.0));
@@ -191,6 +184,22 @@ vec3 getSunDisk(vec3 rayDir) {
     float limb = 0.4 + 0.6 * sqrt(mu);
     float disk = smoothstep(r * 1.02, r * 0.98, a);
     return vec3(1.0, 0.97, 0.88) * disk * limb * 150.0 * uSunIntensity;
+}
+
+// ~10^-4 of disk lightning
+// Falling as 1/(1+d²), where d — distance from its edge in sun radiuses
+vec3 getSunCorona(vec3 rayDir) {
+    float cosTheta = dot(rayDir, uSunDirection);
+    float a = acos(clamp(cosTheta, -1.0, 1.0));
+    float r = uSunAngularRadius;
+    // Расстояние от края диска в солнечных радиусах
+    float d = max(0.0, a - r) / r;
+    // Только за пределами диска, спад 1/(1+d²)
+    float outside = smoothstep(r * 0.98, r * 1.02, a);
+    float corona = outside / (1.0 + d * d);
+    // Обрезаем на ~5 солнечных радиусов
+    corona *= smoothstep(5.0, 3.0, d);
+    return vec3(1.0, 0.95, 0.85) * corona * uSunIntensity * 0.015;
 }
 
 // ── Main ──────────────────────────────────────────────────────────
@@ -279,18 +288,15 @@ void main() {
 
         finalColor = litGround * viewTr + atmColor;
     } else {
-        // Сначала все яркие источники — диск, атмосфера уже в finalColor
         finalColor += getSunDisk(rayDir) * viewTr;
+        finalColor += getSunCorona(rayDir) * viewTr;
 
-        // Звёзды видны только на тёмном фоне (универсально для любых ярких объектов)
         if (uUseStars) {
-            float sceneBrightness = dot(finalColor, vec3(0.333));
-            float stars = getStars(rayDir) * smoothstep(0.5, 0.01, sceneBrightness);
+            float stars = getStars(rayDir);
             finalColor += vec3(stars);
         }
     }
 
-    // HDR output — тонмаппинг и bloom делаются в постпроцессе
     gl_FragColor = vec4(finalColor, 1.0);
 }
 `;

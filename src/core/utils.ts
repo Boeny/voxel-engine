@@ -26,19 +26,14 @@ export function getDistanceText(meters: number): string {
   );
 }
 
-export function getControlParams<T extends string>(
-  object: Record<T, any>,
-  params: Partial<Record<T, [number, number, number]>>,
-): Record<string, { value: number; min: number; max: number; transient: boolean; onChange: (value: number) => void }> {
+export function getControlParams<T extends string>(object: Record<T, any>, params: Partial<Record<T, any[]>>): Record<string, any> {
   return mapObjectValues(params as Record<T, [number, number, number]>, (field, value) => {
-    const [min, max, step] = value;
-
     return {
       value: object[field],
-      min,
-      max,
-      step: step || 0.1,
-      onChange: (newValue) => {
+      min: value[0],
+      max: value[1],
+      step: value[2],
+      onChange: (newValue: any) => {
         object[field] = newValue;
       },
       transient: true,

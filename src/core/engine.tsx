@@ -14,6 +14,7 @@ import { AppState, useStore } from '../store';
 import { EditorController } from './editorController';
 import { GameLogic } from './logic';
 import { PlayerController } from './playerController';
+import { getControlParams } from './utils';
 
 function getState(): AppState {
   return useStore.getState();
@@ -67,6 +68,8 @@ const SceneSetup = () => {
   return null;
 };
 
+const autoExposureEffect = new AutoExposureEffect();
+
 const PostProcessing = () => {
   const bloom = useControls('Bloom', {
     enabled: true,
@@ -75,30 +78,17 @@ const PostProcessing = () => {
     smoothing: { value: 1, min: 0, max: 1, step: 0.01 },
   });
 
-  const exposure = useControls('Eye Adaptation', {
-    targetLuminance: { value: 0.18, min: 0.01, max: 1.0, step: 0.01 },
-    tauLight: { value: 0.5, min: 0.1, max: 3.0, step: 0.1 },
-    tauDark: { value: 2.0, min: 0.5, max: 5.0, step: 0.1 },
-    minAdaptLuminance: { value: 0.001, min: 0.0001, max: 0.1, step: 0.001 },
-    maxAdaptLuminance: { value: 100.0, min: 10.0, max: 500.0, step: 10.0 },
+  useControls('Eye Adaptation', () => {
+    return getControlParams(autoExposureEffect, {
+      targetDay: [0.01, 1.0, 0.01],
+      targetNight: [0.01, 1.0, 0.01],
+      tauLight: [0.1, 3.0, 0.01],
+      tauDark: [0.5, 5.0, 0.01],
+      minAdaptLuminance: [0.0001, 1, 0.001],
+      maxAdaptLuminance: [10.0, 500.0, 1.0],
+      useBlueDark: [],
+    });
   });
-
-  const autoExposureEffect = useMemo(() => new AutoExposureEffect(), []);
-
-  useMemo(() => {
-    autoExposureEffect.targetLuminance = exposure.targetLuminance;
-    autoExposureEffect.tauLight = exposure.tauLight;
-    autoExposureEffect.tauDark = exposure.tauDark;
-    autoExposureEffect.minAdaptLuminance = exposure.minAdaptLuminance;
-    autoExposureEffect.maxAdaptLuminance = exposure.maxAdaptLuminance;
-  }, [
-    autoExposureEffect,
-    exposure.targetLuminance,
-    exposure.tauLight,
-    exposure.tauDark,
-    exposure.minAdaptLuminance,
-    exposure.maxAdaptLuminance,
-  ]);
 
   const effects = useMemo(() => {
     return [
@@ -116,7 +106,7 @@ const PostProcessing = () => {
         object={autoExposureEffect}
       />,
     ].filter(Boolean);
-  }, [autoExposureEffect, bloom.enabled, bloom.threshold, bloom.smoothing, bloom.intensity]);
+  }, [bloom.enabled, bloom.threshold, bloom.smoothing, bloom.intensity]);
 
   return <EffectComposer>{effects as any}</EffectComposer>;
 };

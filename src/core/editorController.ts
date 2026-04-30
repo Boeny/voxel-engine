@@ -182,9 +182,7 @@ export class EditorController extends Controller<AppState> {
       const orbitUp = new Vector3(0, 1, 0).applyQuaternion(this.camera.quaternion);
       const orbitRight = new Vector3(1, 0, 0).applyQuaternion(this.camera.quaternion);
 
-      const newOffset = vectorFromObject.clone()
-        .applyAxisAngle(orbitUp, angleH)
-        .applyAxisAngle(orbitRight, angleV);
+      const newOffset = vectorFromObject.clone().applyAxisAngle(orbitUp, angleH).applyAxisAngle(orbitRight, angleV);
 
       this.camera.position.copy(selectedObject.position).add(newOffset);
       this.camera.up.copy(orbitUp);
