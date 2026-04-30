@@ -39,6 +39,7 @@ uniform float uMiePreferredScatteringDirection;
 // ── Feature toggles (controlled at runtime via UI checkboxes) ─────
 uniform bool uUseMie;
 uniform bool uUseStars;
+uniform float uStarBrightness;
 uniform bool useTransmittance;
 // ─────────────────────────────────────────────────────────────────
 
@@ -169,7 +170,7 @@ float getStars(vec3 rd) {
     float val = fract(sin(seed) * 43758.5453);
     if (val > 0.978) {
         vec2 sp = vec2(fract(sin(seed * 1.1) * 43758.5), fract(sin(seed * 1.2) * 43758.5));
-        return smoothstep(0.12, 0.0, length(cellUv - sp)) * (val - 0.978) * 1.0; // stars should have weak light, but more than bloom min edge
+        return smoothstep(0.12, 0.0, length(cellUv - sp)) * (val - 0.978) * uStarBrightness;
     }
     return 0.0;
 }

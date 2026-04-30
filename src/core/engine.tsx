@@ -26,6 +26,17 @@ const SceneSetup = () => {
   const gameLogic = useRef<GameLogic | null>(null);
   const controller = useRef<PlayerController | EditorController | null>(null);
 
+  useControls('Stars', {
+    brightness: {
+      value: 200,
+      min: 1,
+      max: 1000,
+      step: 1,
+      onChange: (v: number) => gameLogic.current?.setShaderParams({ uStarBrightness: v }),
+      transient: true,
+    },
+  });
+
   // Initialize Game Logic and Controller only once per map session
   useEffect(() => {
     const state = getState();
