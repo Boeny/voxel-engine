@@ -193,13 +193,13 @@ vec3 getSunCorona(vec3 rayDir) {
     float cosTheta = dot(rayDir, uSunDirection);
     float a = acos(clamp(cosTheta, -1.0, 1.0));
     float r = uSunAngularRadius;
-    // Расстояние от края диска в солнечных радиусах
+    // distance from its edge in sun radiuses
     float d = max(0.0, a - r) / r;
     // Только за пределами диска, спад 1/(1+d²)
     float outside = smoothstep(r * 0.98, r * 1.02, a);
     float corona = outside / (1.0 + d * d);
     // Обрезаем на ~5 солнечных радиусов
-    corona *= smoothstep(5.0, 3.0, d);
+    //corona *= smoothstep(5.0, 3.0, d);
     return vec3(1.0, 0.95, 0.85) * corona * uSunIntensity * 0.015;
 }
 
