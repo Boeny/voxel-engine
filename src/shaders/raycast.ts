@@ -15,7 +15,8 @@ varying vec2 vNdc;
 uniform mat4 projectionMatrixInverse;
 uniform mat4 viewMatrixInverse;
 
-uniform vec3  uSunDirection;
+uniform vec3  uSunDirection;      // from planet to star (for atmosphere scattering)
+uniform vec3  uSunDirFromCamera;  // from camera to star (for sun disk, corona, phase)
 uniform float uSunIntensity;
 uniform float uSunAngularRadius;
 
@@ -178,7 +179,7 @@ float getStars(vec3 rd) {
 // ── Sun disk ──────────────────────────────────────────────────────
 // Physical disk with limb darkening
 vec3 getSunDisk(vec3 rayDir) {
-    float cosTheta = dot(rayDir, uSunDirection);
+    float cosTheta = dot(rayDir, uSunDirFromCamera);
     float a = acos(clamp(cosTheta, -1.0, 1.0));
     float r = uSunAngularRadius;
     float mu = max(0.0, 1.0 - a / r);
@@ -190,7 +191,7 @@ vec3 getSunDisk(vec3 rayDir) {
 // ~10^-4 of disk lightning
 // Falling as 1/(1+d²), where d — distance from its edge in sun radiuses
 vec3 getSunCorona(vec3 rayDir) {
-    float cosTheta = dot(rayDir, uSunDirection);
+    float cosTheta = dot(rayDir, uSunDirFromCamera);
     float a = acos(clamp(cosTheta, -1.0, 1.0));
     float r = uSunAngularRadius;
     // distance from its edge in sun radiuses
@@ -198,9 +199,11 @@ vec3 getSunCorona(vec3 rayDir) {
     // Только за пределами диска, спад 1/(1+d²)
     float outside = smoothstep(r * 0.98, r * 1.02, a);
     float corona = outside / (1.0 + d * d);
-    // Обрезаем на ~5 солнечных радиусов
-    //corona *= smoothstep(5.0, 3.0, d);
-    return vec3(1.0, 0.95, 0.85) * corona * uSunIntensity * 0.015;
+
+    // cut corona at 100 radiuses
+    corona *= smoothstep(100.0, 0.0, d);
+
+    return vec3(1.0, 0.95, 0.85) * corona * uSunIntensity * 0.001;
 }
 
 // ── Main ──────────────────────────────────────────────────────────

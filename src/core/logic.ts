@@ -25,6 +25,7 @@ const SHADER_PLANET = {
 const STAR_SHADER = {
   uSunIntensity: 'intensity',
   uSunDirection: '',
+  uSunDirFromCamera: '',
   uSunAngularRadius: '',
 };
 
@@ -34,7 +35,6 @@ export class GameLogic {
   public planet: Planet;
   public star: Star;
   private readonly relativePlanetCenter = new Vector3();
-  private readonly sunDirection = new Vector3();
 
   constructor(
     private camera: Camera,
@@ -137,8 +137,9 @@ export class GameLogic {
     this.setShaderParams({
       projectionMatrixInverse: this.camera.projectionMatrixInverse,
       viewMatrixInverse: this.camera.matrixWorld,
-      uSunDirection: this.sunDirection.subVectors(this.star.position, this.planet.position).normalize(),
-      uSunAngularRadius: Math.atan(this.star.radius / this.star.position.distanceTo(this.planet.position)),
+      uSunDirection: sub(this.star.position, this.planet.position).normalize(),
+      uSunDirFromCamera: sub(this.star.position, this.camera.position).normalize(),
+      uSunAngularRadius: Math.atan(this.star.radius / this.star.position.distanceTo(this.camera.position)),
       uPlanetCenter: this.relativePlanetCenter,
     });
   }
