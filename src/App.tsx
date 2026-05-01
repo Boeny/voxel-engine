@@ -24,7 +24,7 @@ export default function App() {
         onWheel={stopPropagation}
       >
         <Leva
-          oneLineLabels={false}
+          oneLineLabels
           hidden={false}
           neverHide={false}
           hideCopyButton

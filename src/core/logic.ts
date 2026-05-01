@@ -27,6 +27,8 @@ const STAR_SHADER = {
   uSunDirection: '',
   uSunDirFromCamera: '',
   uSunAngularRadius: '',
+  coronaIntensity: '',
+  coronaRadius: '',
 };
 
 export class GameLogic {

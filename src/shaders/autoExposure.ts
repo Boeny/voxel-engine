@@ -48,8 +48,8 @@ export class AutoExposureEffect extends Effect {
   private bloomRef: BloomEffect | null = null;
 
   // Tunable (from Leva)
-  target = 0.18;
-  bloomThreshold = 10.0;
+  target = 0.01;
+  bloomThreshold = 0.01;
 
   constructor() {
     super('AutoExposureEffect', mainFrag, {

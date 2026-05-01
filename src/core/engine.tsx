@@ -121,7 +121,7 @@ const PostProcessing = memo(() => {
   useControls('Eye Adaptation', () => {
     return getControlParams(autoExposureEffect, {
       target: [0.01, 1.0, 0.01],
-      bloomThreshold: [0.1, 50.0, 0.1],
+      bloomThreshold: [0.01, 50.0, 0.1],
     });
   });
 

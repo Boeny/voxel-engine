@@ -6,10 +6,14 @@ type StarParams = {
   intensity: number;
   radius: number;
   position: number[];
+  coronaIntensity: number;
+  coronaRadius: number;
 };
 
 export class Star extends SelectableObject {
   @shaderParam('uSunIntensity') intensity!: number;
+  @shaderParam('coronaRadius') coronaRadius!: number;
+  @shaderParam('coronaIntensity') coronaIntensity!: number;
 
   constructor(
     { position, ...other }: StarParams,

@@ -19,6 +19,8 @@ uniform vec3  uSunDirection;      // from planet to star (for atmosphere scatter
 uniform vec3  uSunDirFromCamera;  // from camera to star (for sun disk, corona, phase)
 uniform float uSunIntensity;
 uniform float uSunAngularRadius;
+uniform float coronaIntensity;
+uniform float coronaRadius;
 
 uniform vec3  uPlanetCenter;
 uniform float uPlanetRadius;
@@ -200,10 +202,13 @@ vec3 getSunCorona(vec3 rayDir) {
     float outside = smoothstep(r * 0.98, r * 1.02, a);
     float corona = outside / (1.0 + d * d);
 
-    // cut corona at 100 radiuses
-    //corona *= smoothstep(100.0, 0.0, d);
+    // Cut corona at 50 solar radii (physically negligible beyond this)
+    // Without this, tiny values (10^-7) get amplified 1000x by auto-exposure → visible color bands
+    corona *= smoothstep(coronaRadius, 3.0, d);
 
-    return vec3(1.0, 0.95, 0.85) * corona * uSunIntensity * 0.001;
+    // ~0.1% of disk brightness (150 * intensity * 0.001 = 1.35 HDR at intensity=9)
+    // Much brighter than stars (0.05-0.1), visible during eclipse
+    return vec3(1.0, 0.95, 0.85) * corona * uSunIntensity * coronaIntensity;
 }
 
 // ── Main ──────────────────────────────────────────────────────────
