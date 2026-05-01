@@ -3,10 +3,13 @@ import { Uniform } from 'three';
 
 import { setDOMContent } from '@/core/utils';
 
-// All-in-one: center-weighted avg luminance + exposure + Reinhard + gamma
-// Average is computed per-pixel (same result for all pixels, 64 texture reads)
 const mainFrag = `
-uniform float target;
+uniform float targetNight;
+uniform float targetDay;
+uniform float targetGlare;
+uniform float minLum;
+uniform float midLum;
+uniform float maxLum;
 uniform float bloomThreshold;
 
 float luma(vec3 c) { return dot(c, vec3(0.2126, 0.7152, 0.0722)); }
@@ -24,10 +27,18 @@ void mainImage(const in vec4 inputColor, const in vec2 uv, out vec4 outputColor)
       totalWeight += w;
     }
   }
-  float avgLum = max(exp(logSum / totalWeight), 0.0001);
+  float adapted = max(exp(logSum / totalWeight), 0.0001);
+
+  // Three-zone target: night → day → glare
+  // adapted:  minLum ──── midLum ──── maxLum
+  // target:   night  ──── day    ──── glare
+  float logA = log(adapted);
+  float t1 = smoothstep(log(minLum), log(midLum), logA);
+  float t2 = smoothstep(log(midLum), log(maxLum), logA);
+  float target = mix(mix(targetNight, targetDay, t1), targetGlare, t2);
 
   // Exposure coefficient
-  float ec = target / avgLum;
+  float ec = target / adapted;
   vec3 color = inputColor.rgb * ec;
 
   // Reinhard tonemapping
@@ -48,15 +59,25 @@ export class AutoExposureEffect extends Effect {
   private bloomRef: BloomEffect | null = null;
 
   // Tunable (from Leva)
-  target = 0.01;
-  bloomThreshold = 0.01;
+  targetNight = 0.18; // dark scenes (stars, night surface)
+  targetDay = 0.5; // well-lit scenes (daytime surface)
+  targetGlare = 0.01; // extreme brightness (looking at sun)
+  minLum = 0.001; // starlight level
+  midLum = 1.0; // normal lighting
+  maxLum = 100.0; // sun glare
+  bloomThreshold = 0.5;
 
   constructor() {
     super('AutoExposureEffect', mainFrag, {
       blendFunction: BlendFunction.SET,
       uniforms: new Map<string, Uniform>([
-        ['target', new Uniform(0.18)],
-        ['bloomThreshold', new Uniform(10.0)],
+        ['targetNight', new Uniform(0.18)],
+        ['targetDay', new Uniform(0.5)],
+        ['targetGlare', new Uniform(0.01)],
+        ['minLum', new Uniform(0.001)],
+        ['midLum', new Uniform(1.0)],
+        ['maxLum', new Uniform(100.0)],
+        ['bloomThreshold', new Uniform(0.5)],
       ]),
     });
   }
@@ -66,7 +87,12 @@ export class AutoExposureEffect extends Effect {
   }
 
   update() {
-    this.uniforms.get('target')!.value = this.target;
+    this.uniforms.get('targetNight')!.value = this.targetNight;
+    this.uniforms.get('targetDay')!.value = this.targetDay;
+    this.uniforms.get('targetGlare')!.value = this.targetGlare;
+    this.uniforms.get('minLum')!.value = this.minLum;
+    this.uniforms.get('midLum')!.value = this.midLum;
+    this.uniforms.get('maxLum')!.value = this.maxLum;
 
     if (this.bloomRef) {
       this.bloomRef.luminanceMaterial.threshold = this.bloomThreshold;
@@ -74,6 +100,6 @@ export class AutoExposureEffect extends Effect {
   }
 
   updateHUD() {
-    setDOMContent('hud-exposure', `target: ${this.target.toFixed(3)}`);
+    setDOMContent('hud-exposure', '');
   }
 }

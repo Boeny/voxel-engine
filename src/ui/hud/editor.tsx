@@ -8,23 +8,10 @@ import { getControlParams } from '@/core/utils';
 import { useStore } from '@/store';
 
 function PlanetParams({ selectedObject }: { selectedObject: Planet }) {
-  useControls('Atmosphere Features', () => ({
-    'Mie Scattering': {
-      value: selectedObject.atmosphereUseMie,
-      onChange: (v: boolean) => {
-        selectedObject.atmosphereUseMie = v;
-      },
-    },
-    'Light Transmittance (color extinction)': {
-      value: selectedObject.useTransmittance,
-      onChange: (v: boolean) => {
-        selectedObject.useTransmittance = v;
-      },
-    },
-  }));
-
   useControls('Selected Object Settings', () => {
     return getControlParams(selectedObject, {
+      atmosphereUseMie: [],
+      useTransmittance: [],
       radius: [1000, 7000, 1],
       atmosphereHeight: [0, 300, 1],
       rotationSpeed: [0, 100, 0.01],
