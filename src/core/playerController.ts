@@ -21,8 +21,8 @@ export class PlayerController extends Controller<AppState> {
 
   // config
   speed = 5; // m/s
-  gravity = 1; // m/s2
-  jumpForce = 0.25;
+  gravity = 10; // m/s2
+  jumpForce = 0.005;
   playerHeight = 2; // m
 
   constructor(camera: Camera, getState: () => AppState) {
