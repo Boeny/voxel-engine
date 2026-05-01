@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { memo, useEffect, useRef } from 'react';
 
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { EffectComposer, Bloom } from '@react-three/postprocessing';
@@ -13,6 +13,7 @@ import { AppState, useStore } from '../store';
 import { EditorController } from './editorController';
 import { GameLogic } from './logic';
 import { PlayerController } from './playerController';
+import { getControlParams } from './utils';
 
 const autoExposureEffect = new AutoExposureEffect();
 
@@ -20,7 +21,7 @@ function getState(): AppState {
   return useStore.getState();
 }
 
-const SceneSetup = () => {
+const SceneSetup = memo(() => {
   const { camera, scene, gl } = useThree();
   const gameState = useStore((state) => state.gameState);
 
@@ -79,9 +80,9 @@ const SceneSetup = () => {
   });
 
   return null;
-};
+});
 
-const PostProcessing = () => {
+const PostProcessing = memo(() => {
   const bloomRef = useRef<BloomEffect>(null);
 
   useEffect(() => {
@@ -92,8 +93,8 @@ const PostProcessing = () => {
 
   useControls('Bloom', {
     intensity: {
-      value: 0.01,
-      min: 0.01,
+      value: 0.001,
+      min: 0.001,
       max: 10,
       step: 0.01,
       onChange: (v: number) => {
@@ -117,6 +118,13 @@ const PostProcessing = () => {
     },
   });
 
+  useControls('Eye Adaptation', () => {
+    return getControlParams(autoExposureEffect, {
+      target: [0.01, 1.0, 0.01],
+      bloomThreshold: [0.1, 50.0, 0.1],
+    });
+  });
+
   return (
     <EffectComposer>
       <Bloom
@@ -126,12 +134,12 @@ const PostProcessing = () => {
       <primitive object={autoExposureEffect} />
     </EffectComposer>
   );
-};
+});
 
 export const Engine = () => {
   return (
     <div className="w-full h-full relative bg-black">
-      <HUD autoExposure={autoExposureEffect} />
+      <HUD />
 
       <Canvas
         camera={{ position: [0, 2, 0], fov: 50, far: 1, near: 0.1 }}

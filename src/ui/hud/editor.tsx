@@ -1,9 +1,10 @@
-import { Leva, useControls } from 'leva';
+import { memo } from 'react';
+
+import { useControls } from 'leva';
 
 import { Planet } from '@/core/planet';
 import { Star } from '@/core/star';
 import { getControlParams } from '@/core/utils';
-import { AutoExposureEffect } from '@/shaders/autoExposure';
 import { useStore } from '@/store';
 
 function PlanetParams({ selectedObject }: { selectedObject: Planet }) {
@@ -64,22 +65,13 @@ function SelectedObjectParams() {
   return null;
 }
 
-const stopPropagation = (e: any) => e.stopPropagation();
-
 function SelectableObjects() {
   const objects = useStore((state) => state.objects);
   const select = useStore((state) => state.select);
   const selectedObject = useStore((state) => state.selectedObject);
 
   return (
-    <div
-      className="absolute left-4 top-1/2 -translate-y-1/2 z-10 flex flex-col gap-1.5"
-      onPointerDown={stopPropagation}
-      onPointerUp={stopPropagation}
-      onMouseDown={stopPropagation}
-      onMouseUp={stopPropagation}
-      onClick={stopPropagation}
-    >
+    <div className="absolute left-4 top-1/2 -translate-y-1/2 z-10 flex flex-col gap-1.5">
       {objects.map((obj) => {
         const isSelected = selectedObject === obj;
 
@@ -118,45 +110,10 @@ function SelectableObjects() {
   );
 }
 
-export function EditorHUD({ autoExposure }: { autoExposure: AutoExposureEffect }) {
-  useControls('Eye / Bloom', () => {
-    return getControlParams(autoExposure, {
-      target: [0.01, 1.0, 0.01],
-      bloomThreshold: [0.1, 50.0, 0.1],
-    });
-  });
-
+export const EditorHUD = memo(() => {
   return (
     <>
-      <div
-        onPointerDown={stopPropagation}
-        onPointerUp={stopPropagation}
-        onMouseDown={stopPropagation}
-        onMouseUp={stopPropagation}
-        onClick={stopPropagation}
-        onWheel={stopPropagation} // Если нужно заблокировать скролл
-      >
-        <Leva
-          //theme={myTheme} // you can pass a custom theme (see the styling section)
-          fill={false} // default = false, true makes the pane fill the parent dom node it's rendered in
-          flat={false} // default = false, true removes border radius and shadow
-          oneLineLabels // default = false, alternative layout for labels, with labels and fields on separate rows
-          //hideTitleBar // default = false, hides the GUI header
-          collapsed={false} // default = false, when true the GUI is collapsed
-          hidden={false} // default = false, when true the GUI is hidden
-          neverHide // default = false, when true the GUI stays visible even when no controls are mounted
-          hideCopyButton // default = false, hides the copy button in the title bar
-          titleBar={{
-            // Configure title bar options
-            title: 'Selected Object Settings', // Custom title
-            drag: false, // Enable dragging
-            filter: false, // Enable filter/search
-            position: { x: 0, y: 0 }, // Initial position (when drag is enabled)
-            onDrag: (_position) => {}, // Callback when dragged
-          }}
-        />
-        <SelectedObjectParams />
-      </div>
+      <SelectedObjectParams />
 
       <div className="absolute top-4 left-4 z-10 text-white font-mono text-sm pointer-events-none drop-shadow-md bg-black/30 p-2 rounded">
         <div id="hud-altitude"></div>
@@ -168,4 +125,4 @@ export function EditorHUD({ autoExposure }: { autoExposure: AutoExposureEffect }
       <SelectableObjects />
     </>
   );
-}
+});

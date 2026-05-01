@@ -80,5 +80,8 @@ export function mapObjectValues<K extends string, V1, V2>(obj: Record<K, V1>, fn
 // ----
 
 export function setDOMContent(id: string, content: string | number) {
-  document.getElementById(id)!.innerText = String(content);
+  const el = document.getElementById(id);
+  if (el) {
+    el.innerText = String(content);
+  }
 }
