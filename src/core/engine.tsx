@@ -1,8 +1,9 @@
 import { useEffect, useRef } from 'react';
 
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
-import { EffectComposer } from '@react-three/postprocessing';
+import { EffectComposer, Bloom } from '@react-three/postprocessing';
 import { useControls } from 'leva';
+import { BloomEffect } from 'postprocessing';
 
 import { AutoExposureEffect } from '@/shaders/autoExposure';
 import { HUD } from '@/ui/hud';
@@ -28,10 +29,10 @@ const SceneSetup = () => {
 
   useControls('Stars', {
     brightness: {
-      value: 1,
-      min: 0.01,
-      max: 1000,
-      step: 1,
+      value: 0.1,
+      min: 0.001,
+      max: 10,
+      step: 0.001,
       onChange: (v: number) => gameLogic.current?.setShaderParams({ uStarBrightness: v }),
       transient: true,
     },
@@ -81,8 +82,47 @@ const SceneSetup = () => {
 };
 
 const PostProcessing = () => {
+  const bloomRef = useRef<BloomEffect>(null);
+
+  useEffect(() => {
+    autoExposureEffect.linkBloom(bloomRef.current);
+
+    return () => autoExposureEffect.linkBloom(null);
+  }, []);
+
+  useControls('Bloom', {
+    intensity: {
+      value: 0.01,
+      min: 0.01,
+      max: 10,
+      step: 0.01,
+      onChange: (v: number) => {
+        if (bloomRef.current) {
+          bloomRef.current.intensity = v;
+        }
+      },
+      transient: true,
+    },
+    smoothing: {
+      value: 1,
+      min: 0,
+      max: 1,
+      step: 0.01,
+      onChange: (v: number) => {
+        if (bloomRef.current) {
+          bloomRef.current.luminanceMaterial.smoothing = v;
+        }
+      },
+      transient: true,
+    },
+  });
+
   return (
     <EffectComposer>
+      <Bloom
+        ref={bloomRef}
+        mipmapBlur
+      />
       <primitive object={autoExposureEffect} />
     </EffectComposer>
   );

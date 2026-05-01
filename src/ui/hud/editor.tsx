@@ -121,15 +121,8 @@ function SelectableObjects() {
 export function EditorHUD({ autoExposure }: { autoExposure: AutoExposureEffect }) {
   useControls('Eye / Bloom', () => {
     return getControlParams(autoExposure, {
-      targetDay: [0.01, 1.0, 0.01],
-      targetNight: [0.01, 1.0, 0.01],
-      tauLight: [0.1, 3.0, 0.01],
-      tauDark: [0.5, 5.0, 0.01],
-      minLum: [0.0001, 1, 0.001],
-      maxLum: [10.0, 500.0, 1.0],
-      bloomThreshold: [0.0, 10.0, 0.1],
-      bloomIntensity: [0.0, 5.0, 0.01],
-      useBlueDark: [],
+      target: [0.01, 1.0, 0.01],
+      bloomThreshold: [0.1, 50.0, 0.1],
     });
   });
 

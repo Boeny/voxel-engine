@@ -201,7 +201,7 @@ vec3 getSunCorona(vec3 rayDir) {
     float corona = outside / (1.0 + d * d);
 
     // cut corona at 100 radiuses
-    corona *= smoothstep(100.0, 0.0, d);
+    //corona *= smoothstep(100.0, 0.0, d);
 
     return vec3(1.0, 0.95, 0.85) * corona * uSunIntensity * 0.001;
 }
@@ -295,8 +295,10 @@ void main() {
         finalColor += getSunDisk(rayDir) * viewTr;
         finalColor += getSunCorona(rayDir) * viewTr;
 
+        // Stars only on dark background (suppressed by atmosphere glow, sun, any bright source)
         if (uUseStars) {
-            float stars = getStars(rayDir);
+            float bgBrightness = dot(finalColor, vec3(0.333));
+            float stars = getStars(rayDir) * smoothstep(0.05, 0.001, bgBrightness);
             finalColor += vec3(stars);
         }
     }

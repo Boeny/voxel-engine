@@ -60,7 +60,7 @@ export class GameLogic {
         uEarthTexture: { value: null },
 
         uUseStars: { value: true },
-        uStarBrightness: { value: 200.0 },
+        uStarBrightness: { value: 0.1 },
       },
       depthWrite: false,
       depthTest: false,
