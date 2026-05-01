@@ -28,8 +28,8 @@ const SceneSetup = () => {
 
   useControls('Stars', {
     brightness: {
-      value: 200,
-      min: 1,
+      value: 1,
+      min: 0.01,
       max: 1000,
       step: 1,
       onChange: (v: number) => gameLogic.current?.setShaderParams({ uStarBrightness: v }),
