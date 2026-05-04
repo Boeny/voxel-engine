@@ -22,6 +22,8 @@ uniform float uSunAngularRadius;
 uniform float coronaIntensity;
 uniform float coronaRadius;
 
+uniform float uStarBrightness;
+
 uniform vec3  uPlanetCenter;
 uniform float uPlanetRadius;
 uniform float uPlanetAngle;
@@ -31,18 +33,17 @@ uniform sampler2D uEarthTexture;
 uniform float uAtmosphereHeight;
 uniform int atmSteps;
 uniform int secondAtmSteps;
-
 uniform vec3  uRayleighBeta;
 uniform float uRayleighScaleHeight;
-
 uniform float uMieBetaScattering;
 uniform float uMieBetaAbsorption;
 uniform float uMieScaleHeight;
 uniform float uMiePreferredScatteringDirection;
+
 // ── Feature toggles (controlled at runtime via UI checkboxes) ─────
+uniform bool useAtmosphere;
 uniform bool uUseMie;
 uniform bool uUseStars;
-uniform float uStarBrightness;
 uniform bool useTransmittance;
 // ─────────────────────────────────────────────────────────────────
 
@@ -249,7 +250,7 @@ void main() {
     float rOD = 0.0;
     float mOD = 0.0;
 
-    if (distThrough > 0.0) {
+    if (useAtmosphere && distThrough > 0.0) {
         sampleAtmosphere(rayPos, rayDir, distToAtm, distThrough, totalR, totalM, rOD, mOD);
     }
 
@@ -265,10 +266,10 @@ void main() {
 
     vec3 atmColor = totalR * uRayleighBeta * phaseR;
     if (uUseMie) atmColor += totalM * uMieBetaScattering * phaseM;
-    atmColor *= uSunIntensity * 0.6;
+    atmColor *= uSunIntensity;
 
     vec3 viewTr = useTransmittance ? transmittance(rOD, mOD) : vec3(1.0);
-    vec3 finalColor = atmColor;
+    vec3 finalColor = vec3(0.0);
 
     if (hitGround) {
         vec3 hitPos = rayPos + rayDir * tGround;
@@ -278,9 +279,9 @@ void main() {
         vec3 groundColor = texture2D(uEarthTexture, getPlanetUV(hitPos)).rgb;
 
         // Sun transmittance to this ground point
-        vec3 sunTr = vec3(0.0);
-        vec2 gPlanetHit = intersectSphere(hitPos + normal * 0.01, uSunDirection, uPlanetRadius * 0.999);
-        if (gPlanetHit.x <= 0.0) {
+        vec3 sunTr = useAtmosphere ? vec3(0.0) : vec3(1.0);
+        vec2 gPlanetHit = intersectSphere(hitPos + normal * 0.01, uSunDirection, uPlanetRadius);
+        if (useAtmosphere && gPlanetHit.x <= 0.0) {
             vec2 gAtmHit = intersectSphere(hitPos, uSunDirection, uAtmosphereRadius);
             float glStep = max(0.0, gAtmHit.y) / 4.0;
             if (glStep > 0.0) {
@@ -292,20 +293,17 @@ void main() {
         float sunDotN = dot(normal, uSunDirection);
         sunTr *= smoothstep(-0.08, 0.12, sunDotN); // soft terminator
 
-        vec3 litGround = atmColor * 0.15 // sky ambient
-            + groundColor * sunTr * max(sunDotN, 0.0) * uSunIntensity * 0.8; // direct sun
-
-        finalColor = litGround * viewTr + atmColor;
+        finalColor += viewTr * (groundColor * sunTr * max(sunDotN, 0.0) * uSunIntensity);
     } else {
-        finalColor += getSunDisk(rayDir) * viewTr;
-        finalColor += getSunCorona(rayDir) * viewTr;
+        finalColor += getSunDisk(rayDir) * viewTr + getSunCorona(rayDir) * viewTr;
 
-        // Stars only on dark background (suppressed by atmosphere glow, sun, any bright source)
         if (uUseStars) {
-            float bgBrightness = dot(finalColor, vec3(0.333));
-            float stars = getStars(rayDir) * smoothstep(0.05, 0.001, bgBrightness);
+            float stars = getStars(rayDir);
             finalColor += vec3(stars);
         }
+    }
+    if (useAtmosphere) {
+        finalColor += atmColor;
     }
 
     gl_FragColor = vec4(finalColor, 1.0);

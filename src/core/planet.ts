@@ -10,6 +10,7 @@ type PlanetParams = {
   radius: number;
   rotationSpeed: number;
   angle: number;
+  useAtmosphere: boolean;
   atmosphereHeight: number;
   atmosphereRayleighScaleHeight: number;
   atmosphereMieScaleHeight: number;
@@ -38,6 +39,7 @@ export class Planet extends SelectableObject {
   // Simple 1:1 shader param mappings
   @shaderParam('uPlanetAxis') rotation!: Vector3;
   @shaderParam('uPlanetRadius') radius!: number;
+  @shaderParam('useAtmosphere') useAtmosphere!: number;
   @shaderParam('uAtmosphereHeight') atmosphereHeight!: number;
   @shaderParam('uRayleighScaleHeight') atmosphereRayleighScaleHeight!: number;
   @shaderParam('uMieScaleHeight') atmosphereMieScaleHeight!: number;

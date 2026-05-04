@@ -10,6 +10,7 @@ import { useStore } from '@/store';
 function PlanetParams({ selectedObject }: { selectedObject: Planet }) {
   useControls('Selected Object Settings', () => {
     return getControlParams(selectedObject, {
+      useAtmosphere: [],
       atmosphereUseMie: [],
       useTransmittance: [],
       radius: [1000, 7000, 1],

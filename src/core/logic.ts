@@ -54,6 +54,8 @@ export class GameLogic {
         viewMatrixInverse: { value: new Matrix4() },
 
         uPlanetCenter: { value: this.relativePlanetCenter },
+
+        useAtmosphere: { value: false },
         uUseMie: { value: true },
         useTransmittance: { value: true },
         uRayleighBeta: { value: new Vector3(5.5e-3, 13.0e-3, 22.4e-3) },

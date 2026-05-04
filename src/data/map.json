@@ -12,6 +12,7 @@
     "rotation": [0, 0.4, 0.92],
     "rotationSpeed": 5,
     "angle": 0,
+    "useAtmosphere": true,
     "atmosphereHeight": 100,
     "atmosphereRayleighScaleHeight": 8,
     "atmosphereMieScaleHeight": 1.5,
