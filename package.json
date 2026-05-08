@@ -11,7 +11,9 @@
     "lint": "eslint ./src --fix",
     "format": "prettier --write ./src",
     "typecheck": "tsc --noEmit",
-    "test": "vitest run"
+    "test": "vitest run",
+    "stars:prepare": "make install",
+    "stars:fetch": "make fetch"
   },
   "dependencies": {
     "@react-three/fiber": "9.6.0",

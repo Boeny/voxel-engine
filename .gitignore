@@ -23,3 +23,5 @@ coverage/
 *.yarnignore
 *.local
 CLAUDE.md
+.venv/
+.claude/
