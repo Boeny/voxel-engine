@@ -1,28 +1,33 @@
 /**
- * shaderParam — legacy property decorator (experimentalDecorators: true).
+ * shaderUniforms — legacy class decorator (experimentalDecorators: true).
  *
- * How it works:
- *   @shaderParam() myField!: number;
+ * Declares shader uniform names + default values in ONE place. Installs
+ * getter/setter on the class prototype for each name, so assignments like
+ * `this.uPlanetRadius = 6371` automatically write to
+ * `this.material.uniforms.uPlanetRadius.value`.
  *
- * Decorator is called one time during class creation
- * It replaces `myField` with setter/getter directly in the prototype
- * Value is `this._myField` (backing field).
- * Setter calls `this.setShaderParams({ uFoo: v })` each time the value changes
+ * Requires the class to have a `material: ShaderMaterial` field whose uniforms
+ * object contains every key from `defs`. Use `uniformsFromDefs(defs)` to build
+ * it directly from the same source of truth.
  */
-export function shaderParam(): PropertyDecorator {
-  return function (target: object, field: string | symbol): void {
-    const backingKey = `_${String(field)}`;
+export function shaderUniforms<T extends Record<string, any>>(defs: T): ClassDecorator {
+  return function (constructor: Function): void {
+    for (const field of Object.keys(defs)) {
+      const backingKey = `_${field}`;
 
-    Object.defineProperty(target, field, {
-      get(this: any): number {
-        return this[backingKey];
-      },
-      set(this: any, v: number): void {
-        this[backingKey] = v;
-        this.setShaderParams({ [field]: v });
-      },
-      configurable: true,
-      enumerable: true,
-    });
+      Object.defineProperty(constructor.prototype, field, {
+        get(this: any) {
+          return this[backingKey];
+        },
+        set(this: any, value: any) {
+          this[backingKey] = value;
+          if (this.material) {
+            this.material.uniforms[field].value = value;
+          }
+        },
+        configurable: true,
+        enumerable: true,
+      });
+    }
   };
 }

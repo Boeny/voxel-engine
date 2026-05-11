@@ -1,67 +1,40 @@
-import { Matrix4, Mesh, PerspectiveCamera, PlaneGeometry, Scene, ShaderMaterial, TextureLoader, Vector3 } from 'three';
+import { Matrix4, Mesh, PerspectiveCamera, PlaneGeometry, Scene, ShaderMaterial, Texture, TextureLoader, Vector3 } from 'three';
 
 import { raycastFrag, raycastVert } from '../shaders/raycast';
 
-import { shaderParam } from './decorators';
-import { mapObjectValues, sub } from './utils';
+import { shaderUniforms } from './decorators';
+import { mapObjectValues } from './utils';
 
-type ShaderParams = {
-  uPlanetAngle: number;
-  uPlanetAxis: Vector3;
-  uPlanetRadius: number;
-  uAtmosphereHeight: number;
-  uRayleighScaleHeight: number;
-  uMieScaleHeight: number;
-  uMiePreferredScatteringDirection: number;
-  uMieBetaAbsorption: number;
-  atmSteps: number;
-  secondAtmSteps: number;
-  useAtmosphere: boolean;
-  uUseMie: boolean;
-  useTransmittance: boolean;
-  uEarthTexture: string | null;
-};
-
-const SHADER_PARAMS: ShaderParams = {
+const PLANET_UNIFORMS = {
+  uPlanetAngle: 0,
+  uPlanetAxis: new Vector3(),
+  uPlanetRadius: 0,
+  uAtmosphereHeight: 0,
   uRayleighScaleHeight: 0,
   uMieScaleHeight: 0,
   uMiePreferredScatteringDirection: 0,
   uMieBetaAbsorption: 0,
   atmSteps: 0,
   secondAtmSteps: 0,
-  uPlanetRadius: 0,
-  uPlanetAxis: new Vector3(),
-  uPlanetAngle: 0,
-  uAtmosphereHeight: 0,
   useAtmosphere: false,
   uUseMie: true,
   useTransmittance: true,
-  uEarthTexture: null,
+  uEarthTexture: null as Texture | null,
 };
 
-type PlanetParams = ShaderParams & {
-  position: number[];
+type PlanetUniforms = typeof PLANET_UNIFORMS;
+
+// JSON-friendly param types: Vector3 fields come as number[] from JSON, converted in constructor.
+type PlanetParams = Omit<PlanetUniforms, 'uEarthTexture'> & {
+  position: Vector3;
   rotationSpeed: number;
   textureUrl: string;
 };
 
+@shaderUniforms(PLANET_UNIFORMS)
 export class Planet {
   rotationSpeed!: number;
   position!: Vector3;
-
-  @shaderParam() uPlanetAngle!: number;
-  @shaderParam() uPlanetAxis!: Vector3;
-  @shaderParam() uPlanetRadius!: number;
-  @shaderParam() uAtmosphereHeight!: number;
-  @shaderParam() uRayleighScaleHeight!: number;
-  @shaderParam() uMieScaleHeight!: number;
-  @shaderParam() uMiePreferredScatteringDirection!: number;
-  @shaderParam() uMieBetaAbsorption!: number;
-  @shaderParam() atmSteps!: number;
-  @shaderParam() secondAtmSteps!: number;
-  @shaderParam() useAtmosphere!: boolean;
-  @shaderParam() uUseMie!: boolean;
-  @shaderParam() useTransmittance!: boolean;
 
   private material: ShaderMaterial;
   private mesh: Mesh;
@@ -73,7 +46,7 @@ export class Planet {
       vertexShader: raycastVert,
       fragmentShader: raycastFrag,
       uniforms: {
-        ...mapObjectValues(SHADER_PARAMS, ({ value }) => ({ value })),
+        ...mapObjectValues(PLANET_UNIFORMS, ({ value }) => ({ value })),
 
         projectionMatrixInverse: { value: new Matrix4() },
         viewMatrixInverse: { value: new Matrix4() },
@@ -95,20 +68,9 @@ export class Planet {
     this.mesh.renderOrder = 1000;
 
     new TextureLoader().load(textureUrl, (texture) => {
-      this.setShaderParams({ uEarthTexture: texture });
+      this.uEarthTexture = texture;
     });
   }
-
-  setShaderParams = (params: Record<string, any>) => {
-    if (!this.material) {
-      return;
-    }
-    for (const field in params) {
-      if (Object.hasOwn(params, field)) {
-        this.material.uniforms[field].value = params[field];
-      }
-    }
-  };
 
   addToScene(scene: Scene) {
     scene.add(this.mesh);
@@ -125,13 +87,12 @@ export class Planet {
   update(delta: number, camera: PerspectiveCamera, starPosition: Vector3, starIntensity: number) {
     this.rotate(this.rotationSpeed * delta);
 
-    this.setShaderParams({
-      projectionMatrixInverse: camera.projectionMatrixInverse,
-      viewMatrixInverse: camera.matrixWorld,
-      uPlanetCenter: sub(this.position, camera.position),
-      uSunDirection: sub(starPosition, this.position).normalize(),
-      uSunIntensity: starIntensity,
-    });
+    const uniforms = this.material.uniforms;
+    uniforms.projectionMatrixInverse.value = camera.projectionMatrixInverse;
+    uniforms.viewMatrixInverse.value = camera.matrixWorld;
+    uniforms.uPlanetCenter.value.copy(this.position).sub(camera.position);
+    uniforms.uSunDirection.value.copy(starPosition).sub(this.position).normalize();
+    uniforms.uSunIntensity.value = starIntensity;
   }
 
   dispose() {
@@ -139,3 +100,7 @@ export class Planet {
     this.mesh.geometry.dispose();
   }
 }
+
+// Type augmentation: tell TypeScript about the fields the decorator installs at runtime
+// eslint-disable-next-line no-redeclare
+export interface Planet extends PlanetUniforms {}
