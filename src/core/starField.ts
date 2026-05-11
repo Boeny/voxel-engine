@@ -5,6 +5,7 @@ import starsData from '@/data/stars.json';
 
 import { LY_TO_KM } from './const';
 import { pow4 } from './utils';
+import { temperatureToLinearRGB } from './utils/starUtils';
 
 export interface Star {
   position: Vector3; // in light years
@@ -23,41 +24,6 @@ function sphericalToCartesian(rightAscension: number, declination: number, dista
     distance * cosDeclination * Math.sin(rightAscension),
     distance * Math.sin(declination),
   );
-}
-
-// Tanner Helland's approximation: blackbody temperature → sRGB chromaticity (normalized so brightest channel = 1)
-function temperatureToLinearRGB(kelvin: number): Vector3 {
-  const t = kelvin / 100;
-
-  let r: number;
-  if (t <= 66) {
-    r = 255;
-  } else {
-    r = 329.698727446 * Math.pow(t - 60, -0.1332047592);
-  }
-
-  let g: number;
-  if (t <= 66) {
-    g = 99.4708025861 * Math.log(t) - 161.1195681661;
-  } else {
-    g = 288.1221695283 * Math.pow(t - 60, -0.0755148492);
-  }
-
-  let b: number;
-  if (t >= 66) {
-    b = 255;
-  } else if (t <= 19) {
-    b = 0;
-  } else {
-    b = 138.5177312231 * Math.log(t - 10) - 305.0447927307;
-  }
-
-  const sR = Math.max(0, Math.min(255, r)) / 255;
-  const sG = Math.max(0, Math.min(255, g)) / 255;
-  const sB = Math.max(0, Math.min(255, b)) / 255;
-
-  // sRGB → linear (gamma 2.2 approximation)
-  return new Vector3(Math.pow(sR, 2.2), Math.pow(sG, 2.2), Math.pow(sB, 2.2));
 }
 
 function parseStarCatalog(stars: typeof starsData): Star[] {

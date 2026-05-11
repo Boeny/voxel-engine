@@ -34,7 +34,7 @@ export class GameLogic {
     this.scene.add(this.planetField.object);
   }
 
-  update(_delta: number) {
+  update(delta: number) {
     // Camera drag from active planet's rotation (atmosphere + ground friction)
     //const altitude = Math.max(0, this.camera.position.distanceTo(activePlanet.position) - activePlanet.uPlanetRadius);
 
@@ -70,6 +70,12 @@ export class GameLogic {
 
     this.camera.updateMatrixWorld();
     this.starField.update(this.camera.position, this.camera.fov, window.innerHeight);
+
+    for (const planet of this.planets) {
+      planet.update(delta, this.camera);
+    }
+
+    // PlanetField re-reads planet.positionLy each frame so orbital motion shows in the LY-cloud
     this.planetField.update(this.camera.position);
   }
 

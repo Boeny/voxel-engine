@@ -2,7 +2,7 @@ import { Matrix4, Mesh, PerspectiveCamera, PlaneGeometry, Scene, ShaderMaterial,
 
 import { raycastFrag, raycastVert } from '../shaders/raycast';
 
-import { LY_TO_KM } from './const';
+import { LY_TO_KM, ORBIT_TIME_SCALE, SUN_GM } from './const';
 import { shaderUniforms } from './decorators';
 import { Star } from './starField';
 import { angleToRad, arrayToVector, mapObjectValues, mul, norm, rotateXY, sub } from './utils';
@@ -112,6 +112,11 @@ export class Planet {
 
   update(delta: number, camera: PerspectiveCamera) {
     this.rotate(this.rotationSpeed * delta);
+
+    // Orbital revolution via Kepler's third law: ω = sqrt(GM / r³), in rad/s.
+    // Converted to deg/s and accelerated by ORBIT_TIME_SCALE so the motion is visible.
+    const orbitAngularSpeed = Math.sqrt(SUN_GM / (this.distanceFromStar * this.distanceFromStar * this.distanceFromStar));
+    this.orbitalPhase += orbitAngularSpeed * (180 / Math.PI) * delta * ORBIT_TIME_SCALE;
 
     this.projectionMatrixInverse = camera.projectionMatrixInverse;
     this.viewMatrixInverse = camera.matrixWorld;

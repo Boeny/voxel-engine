@@ -59,17 +59,20 @@ export class PlanetField {
   private readonly material: ShaderMaterial;
   private readonly geometry: BufferGeometry;
   private readonly points: Points;
+  private readonly planets: Planet[];
+  private readonly positionsBuffer: Float32Array;
 
   constructor(planets: Planet[]) {
+    this.planets = planets;
     const count = planets.length;
-    const positions = new Float32Array(count * 3);
+    this.positionsBuffer = new Float32Array(count * 3);
     const colors = new Float32Array(count * 3);
 
     for (let i = 0; i < count; i++) {
       const ly = planets[i].positionLy;
-      positions[i * 3 + 0] = ly.x;
-      positions[i * 3 + 1] = ly.y;
-      positions[i * 3 + 2] = ly.z;
+      this.positionsBuffer[i * 3 + 0] = ly.x;
+      this.positionsBuffer[i * 3 + 1] = ly.y;
+      this.positionsBuffer[i * 3 + 2] = ly.z;
       // Placeholder neutral color — later derive from albedo / atmosphere
       colors[i * 3 + 0] = 0.6;
       colors[i * 3 + 1] = 0.7;
@@ -77,7 +80,7 @@ export class PlanetField {
     }
 
     this.geometry = new BufferGeometry();
-    this.geometry.setAttribute('position', new BufferAttribute(positions, 3));
+    this.geometry.setAttribute('position', new BufferAttribute(this.positionsBuffer, 3));
     this.geometry.setAttribute('color', new BufferAttribute(colors, 3));
 
     this.material = new ShaderMaterial({
@@ -103,6 +106,15 @@ export class PlanetField {
 
   update(cameraPositionKm: Vector3) {
     this.material.uniforms.uCameraPositionLy.value.copy(cameraPositionKm).divideScalar(LY_TO_KM);
+
+    // Refresh positions from planets (their orbital phase changes each frame)
+    for (let i = 0; i < this.planets.length; i++) {
+      const ly = this.planets[i].positionLy;
+      this.positionsBuffer[i * 3 + 0] = ly.x;
+      this.positionsBuffer[i * 3 + 1] = ly.y;
+      this.positionsBuffer[i * 3 + 2] = ly.z;
+    }
+    this.geometry.getAttribute('position').needsUpdate = true;
   }
 
   setShaderParam(field: string, value: number) {
