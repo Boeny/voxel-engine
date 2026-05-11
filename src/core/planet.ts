@@ -2,13 +2,17 @@ import { Matrix4, Mesh, PerspectiveCamera, PlaneGeometry, Scene, ShaderMaterial,
 
 import { raycastFrag, raycastVert } from '../shaders/raycast';
 
+import { LY_TO_KM } from './const';
 import { shaderUniforms } from './decorators';
-import { mapObjectValues } from './utils';
+import { Star } from './starField';
+import { angleToRad, arrayToVector, mapObjectValues, mul, norm, rotateXY, sub } from './utils';
 
 const PLANET_UNIFORMS = {
-  uPlanetAngle: 0,
-  uPlanetAxis: new Vector3(),
-  uPlanetRadius: 0,
+  position: new Vector3(),
+  angle: 0,
+  axis: new Vector3(),
+  radius: 0,
+  sunDirection: new Vector3(),
   uAtmosphereHeight: 0,
   uRayleighScaleHeight: 0,
   uMieScaleHeight: 0,
@@ -20,39 +24,53 @@ const PLANET_UNIFORMS = {
   uUseMie: true,
   useTransmittance: true,
   uEarthTexture: null as Texture | null,
+  projectionMatrixInverse: new Matrix4(),
+  viewMatrixInverse: new Matrix4(),
+  sunLuminosity: 0,
 };
 
 type PlanetUniforms = typeof PLANET_UNIFORMS;
 
 // JSON-friendly param types: Vector3 fields come as number[] from JSON, converted in constructor.
-type PlanetParams = Omit<PlanetUniforms, 'uEarthTexture'> & {
-  position: Vector3;
+type PlanetParams = Omit<
+  Partial<PlanetUniforms>,
+  'uEarthTexture' | 'axis' | 'projectionMatrixInverse' | 'viewMatrixInverse' | 'sunLuminosity' | 'position'
+> & {
+  axis: number[];
+  distanceFromStar: number;
+  orbitalPhase: number;
   rotationSpeed: number;
   textureUrl: string;
 };
 
-@shaderUniforms(PLANET_UNIFORMS)
+@shaderUniforms<Planet>(PLANET_UNIFORMS, (instance, field, value) => {
+  if (instance.material) {
+    instance.material.uniforms[field].value = value;
+  }
+})
 export class Planet {
+  orbitalPhase!: number;
   rotationSpeed!: number;
-  position!: Vector3;
+  distanceFromStar!: number;
+  star: Star;
 
   private material: ShaderMaterial;
   private mesh: Mesh;
 
-  constructor({ textureUrl, ...params }: PlanetParams) {
-    Object.entries(params).forEach(([key, value]) => ((this as any)[key] = value));
+  constructor({ textureUrl, ...params }: PlanetParams, star: Star) {
+    this.star = star;
+
+    Object.entries(params).forEach(([key, value]) => {
+      (this as any)[key] = Array.isArray(value) ? arrayToVector(value) : value;
+    });
+
+    this.calcPosition();
 
     this.material = new ShaderMaterial({
       vertexShader: raycastVert,
       fragmentShader: raycastFrag,
       uniforms: {
         ...mapObjectValues(PLANET_UNIFORMS, ({ value }) => ({ value })),
-
-        projectionMatrixInverse: { value: new Matrix4() },
-        viewMatrixInverse: { value: new Matrix4() },
-        uPlanetCenter: { value: new Vector3() },
-        uSunDirection: { value: new Vector3() },
-        uSunIntensity: { value: 0 },
 
         uRayleighBeta: { value: new Vector3(5.5e-3, 13.0e-3, 22.4e-3) },
         uMieBetaScattering: { value: 21e-3 },
@@ -72,6 +90,14 @@ export class Planet {
     });
   }
 
+  // World position in LY (star LY + km offset converted to LY)
+  get positionLy(): Vector3 {
+    return mul(this.position, 1 / LY_TO_KM);
+  }
+  calcPosition() {
+    this.position = rotateXY(new Vector3(this.distanceFromStar, 0, 0), angleToRad(this.orbitalPhase));
+  }
+
   addToScene(scene: Scene) {
     scene.add(this.mesh);
   }
@@ -81,18 +107,20 @@ export class Planet {
   }
 
   rotate(angleDegrees: number) {
-    this.uPlanetAngle += angleDegrees;
+    this.angle += angleDegrees;
   }
 
-  update(delta: number, camera: PerspectiveCamera, starPosition: Vector3, starIntensity: number) {
+  update(delta: number, camera: PerspectiveCamera) {
     this.rotate(this.rotationSpeed * delta);
 
-    const uniforms = this.material.uniforms;
-    uniforms.projectionMatrixInverse.value = camera.projectionMatrixInverse;
-    uniforms.viewMatrixInverse.value = camera.matrixWorld;
-    uniforms.uPlanetCenter.value.copy(this.position).sub(camera.position);
-    uniforms.uSunDirection.value.copy(starPosition).sub(this.position).normalize();
-    uniforms.uSunIntensity.value = starIntensity;
+    this.projectionMatrixInverse = camera.projectionMatrixInverse;
+    this.viewMatrixInverse = camera.matrixWorld;
+
+    // NOTE: assumes camera is in the same local-km frame as distanceFromStar.
+    // Will be properly resolved when the local-km system (step 3) is built.
+    this.calcPosition();
+    this.sunDirection = norm(sub(mul(this.star.position, LY_TO_KM), this.position));
+    this.sunLuminosity = this.star.luminosity;
   }
 
   dispose() {

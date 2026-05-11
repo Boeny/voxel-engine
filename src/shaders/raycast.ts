@@ -1,14 +1,14 @@
 export const raycastVert = `
-uniform vec3 uPlanetCenter;
-uniform float uPlanetRadius;
+uniform vec3 position;
+uniform float radius;
 uniform float uAtmosphereHeight;
 
 varying vec2 vNdc;
 
 void main() {
-    float boundingRadius = uPlanetRadius + uAtmosphereHeight;
-    // uPlanetCenter is camera-relative (camera at origin), so apply only rotation (w=0)
-    vec3 centerView = (viewMatrix * vec4(uPlanetCenter, 0.0)).xyz;
+    float boundingRadius = radius + uAtmosphereHeight;
+    // position is camera-relative (camera at origin), so apply only rotation (w=0)
+    vec3 centerView = (viewMatrix * vec4(position, 0.0)).xyz;
 
     // Camera inside bounding sphere → fullscreen quad fallback
     if (length(centerView) < boundingRadius) {
@@ -36,13 +36,13 @@ varying vec2 vNdc;
 uniform mat4 projectionMatrixInverse;
 uniform mat4 viewMatrixInverse;
 
-uniform vec3  uSunDirection; // from planet to star (for atmosphere scattering)
-uniform float uSunIntensity;
+uniform vec3  sunDirection; // from planet to star (for atmosphere scattering)
+uniform float sunLuminosity;
 
-uniform vec3  uPlanetCenter;
-uniform float uPlanetRadius;
-uniform float uPlanetAngle;
-uniform vec3  uPlanetAxis;
+uniform vec3  position;
+uniform float radius;
+uniform float angle;
+uniform vec3  axis;
 uniform sampler2D uEarthTexture;
 
 uniform float uAtmosphereHeight;
@@ -64,7 +64,7 @@ uniform bool useTransmittance;
 
 // Precision-stable sphere intersection (camera-relative: camera = origin)
 vec2 intersectSphere(vec3 ro, vec3 rd, float sr) {
-    vec3 oc = ro - uPlanetCenter;
+    vec3 oc = ro - position;
     float b = dot(oc, rd);
     float len = length(oc);
     float c = (len + sr) * (len - sr);
@@ -75,7 +75,7 @@ vec2 intersectSphere(vec3 ro, vec3 rd, float sr) {
 }
 
 float getAltitude(vec3 p) {
-    return length(p - uPlanetCenter) - uPlanetRadius;
+    return length(p - position) - radius;
 }
 
 // Rodrigues rotation: rotate v around unit axis by angle
@@ -86,13 +86,13 @@ vec3 rotateAround(vec3 v, vec3 axis, float angle) {
 
 // Equirectangular UV for arbitrary rotation axis
 vec2 getPlanetUV(vec3 hitPos) {
-    vec3 n = normalize(rotateAround(hitPos - uPlanetCenter, uPlanetAxis, -uPlanetAngle));
-    float cosLat = dot(n, uPlanetAxis);
+    vec3 n = normalize(rotateAround(hitPos - position, axis, -angle));
+    float cosLat = dot(n, axis);
     float texV = acos(clamp(cosLat, -1.0, 1.0)) / PI;
-    vec3 ref = abs(uPlanetAxis.x) < 0.9 ? vec3(1.0, 0.0, 0.0) : vec3(0.0, 0.0, 1.0);
-    vec3 prime = normalize(ref - uPlanetAxis * dot(ref, uPlanetAxis));
-    vec3 east = cross(prime, uPlanetAxis);
-    vec3 perp = n - uPlanetAxis * cosLat;
+    vec3 ref = abs(axis.x) < 0.9 ? vec3(1.0, 0.0, 0.0) : vec3(0.0, 0.0, 1.0);
+    vec3 prime = normalize(ref - axis * dot(ref, axis));
+    vec3 east = cross(prime, axis);
+    vec3 perp = n - axis * cosLat;
     float texU = 0.5 + atan(dot(perp, east), dot(perp, prime)) / (2.0 * PI);
     return vec2(texU, texV);
 }
@@ -120,7 +120,7 @@ vec3 sunOpticalDepth(vec3 startPos, float stepSize) {
         float h = max(0.0, getAltitude(pos));
         rOD += rayleighDensity(h) * stepSize;
         if (uUseMie) mOD += mieDensity(h) * stepSize;
-        pos += uSunDirection * stepSize;
+        pos += sunDirection * stepSize;
     }
 
     return vec3(rOD, mOD, 0.0);
@@ -138,7 +138,7 @@ void sampleAtmosphere(
     outMie = vec3(0.0);
     outRayleighOD = 0.0;
     outMieOD = 0.0;
-    float uAtmosphereRadius = uAtmosphereHeight + uPlanetRadius;
+    float uAtmosphereRadius = uAtmosphereHeight + radius;
 
     float stepSize = distThrough / float(atmSteps);
     vec3 pos = rayPos + rayDir * (distToAtm + stepSize * 0.5);
@@ -153,11 +153,11 @@ void sampleAtmosphere(
 
         // How much sunlight reaches this sample point
         vec3 sunOD;
-        vec2 shadowHit = intersectSphere(pos, uSunDirection, uPlanetRadius);
+        vec2 shadowHit = intersectSphere(pos, sunDirection, radius);
         if (shadowHit.x <= 0.0) {
-            vec2 lightAtmHit = intersectSphere(pos, uSunDirection, uAtmosphereRadius);
+            vec2 lightAtmHit = intersectSphere(pos, sunDirection, uAtmosphereRadius);
             float lightStep = max(0.0, lightAtmHit.y) / float(secondAtmSteps);
-            sunOD = sunOpticalDepth(pos + uSunDirection * lightStep * 0.5, lightStep);
+            sunOD = sunOpticalDepth(pos + sunDirection * lightStep * 0.5, lightStep);
 
             vec3 atten = useTransmittance ? transmittance(
                 outRayleighOD + sunOD.x,
@@ -184,7 +184,7 @@ void main() {
     // Ground intersection
     bool hitGround = false;
     float tGround = -1.0;
-    vec2 planetHit = intersectSphere(rayPos, rayDir, uPlanetRadius);
+    vec2 planetHit = intersectSphere(rayPos, rayDir, radius);
     if (planetHit.x > 0.0) {
         hitGround = true;
         tGround = planetHit.x;
@@ -195,7 +195,7 @@ void main() {
 
     // Atmosphere segment along ray
     float distToAtm = 0.0, distThrough = 0.0;
-    float uAtmosphereRadius = uAtmosphereHeight + uPlanetRadius;
+    float uAtmosphereRadius = uAtmosphereHeight + radius;
     vec2 atmHit = intersectSphere(rayPos, rayDir, uAtmosphereRadius);
 
     if (atmHit.y > 0.0) {
@@ -217,7 +217,7 @@ void main() {
     }
 
     // Phase functions
-    float cosTheta = dot(rayDir, uSunDirection);
+    float cosTheta = dot(rayDir, sunDirection);
     float phaseR = 3.0 / (16.0 * PI) * (1.0 + cosTheta * cosTheta);
     float phaseM = 1.0;
     if (uUseMie) {
@@ -228,34 +228,34 @@ void main() {
 
     vec3 atmColor = totalR * uRayleighBeta * phaseR;
     if (uUseMie) atmColor += totalM * uMieBetaScattering * phaseM;
-    atmColor *= uSunIntensity;
+    atmColor *= sunLuminosity;
 
     vec3 viewTr = useTransmittance ? transmittance(rOD, mOD) : vec3(1.0);
     vec3 finalColor = vec3(0.0);
 
     if (hitGround) {
         vec3 hitPos = rayPos + rayDir * tGround;
-        vec3 normal = normalize(hitPos - uPlanetCenter);
+        vec3 normal = normalize(hitPos - position);
         if (getAltitude(rayPos) < 0.0) normal = -normal;
 
         vec3 groundColor = texture2D(uEarthTexture, getPlanetUV(hitPos)).rgb;
 
         // Sun transmittance to this ground point
         vec3 sunTr = useAtmosphere ? vec3(0.0) : vec3(1.0);
-        vec2 gPlanetHit = intersectSphere(hitPos + normal * 0.01, uSunDirection, uPlanetRadius);
+        vec2 gPlanetHit = intersectSphere(hitPos + normal * 0.01, sunDirection, radius);
         if (useAtmosphere && gPlanetHit.x <= 0.0) {
-            vec2 gAtmHit = intersectSphere(hitPos, uSunDirection, uAtmosphereRadius);
+            vec2 gAtmHit = intersectSphere(hitPos, sunDirection, uAtmosphereRadius);
             float glStep = max(0.0, gAtmHit.y) / 4.0;
             if (glStep > 0.0) {
-                vec3 glOD = sunOpticalDepth(hitPos + uSunDirection * glStep * 0.5, glStep);
+                vec3 glOD = sunOpticalDepth(hitPos + sunDirection * glStep * 0.5, glStep);
                 sunTr = useTransmittance ? transmittance(glOD.x, glOD.y) : vec3(1.0);
             }
         }
 
-        float sunDotN = dot(normal, uSunDirection);
+        float sunDotN = dot(normal, sunDirection);
         sunTr *= smoothstep(-0.08, 0.12, sunDotN); // soft terminator
 
-        finalColor += viewTr * (groundColor * sunTr * max(sunDotN, 0.0) * uSunIntensity);
+        finalColor += viewTr * (groundColor * sunTr * max(sunDotN, 0.0) * sunLuminosity);
     }
     if (useAtmosphere) {
         finalColor += atmColor;

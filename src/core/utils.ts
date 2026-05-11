@@ -163,3 +163,10 @@ export function pow4(x: number) {
 
   return y * y;
 }
+
+export function rotateXY(v: Vector3, angleRad: number) {
+  const x = v.x * Math.cos(angleRad) - v.y * Math.sin(angleRad);
+  const y = v.x * Math.sin(angleRad) + v.y * Math.cos(angleRad);
+
+  return new Vector3(x, y, v.z);
+}

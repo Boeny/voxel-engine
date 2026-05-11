@@ -63,16 +63,15 @@ function SelectableObjects() {
   const objects = useStore((state) => state.objects);
   const select = useStore((state) => state.select);
   const selectedObject = useStore((state) => state.selectedObject);
-  console.log(objects);
 
   return (
     <div className="absolute left-4 top-1/2 -translate-y-1/2 z-10 flex flex-col gap-1.5">
       {objects.map((obj) => {
-        const isSelected = selectedObject === obj;
+        const isSelected = selectedObject?.id === obj.id;
 
         return (
           <button
-            key={obj.type}
+            key={obj.id}
             onClick={() => select(isSelected ? null : obj)}
             className={[
               'flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-mono transition-all duration-150 cursor-pointer select-none',

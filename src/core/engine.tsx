@@ -101,8 +101,9 @@ const SceneSetup = memo(() => {
     (Object.keys(initialParams) as (keyof typeof initialParams)[]).forEach((starShaderParam) => {
       gameLogic.current?.starField.setShaderParam(starShaderParam, initialParams[starShaderParam]);
     });
+    //state.setObjects(gameLogic.current.starField.parsedStars.map((s, i) => ({ ...s, type: 'star', id: i })));
     const star = gameLogic.current.starField.parsedStars[0];
-    state.select({ ...star, type: 'star' });
+    state.select({ ...star, type: 'star', id: 0 });
 
     camera.position.copy(add(star.position, new Vector3(star.radius + 40_000_000, 0, 0)));
     controller.current = isEditor ? new EditorController(camera) : new PlayerController(camera);

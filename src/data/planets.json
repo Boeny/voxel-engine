@@ -1,21 +1,68 @@
 [
   {
     "starIndex": 0,
-    "position": [0, -150000000, 0],
-    "uPlanetRadius": 6371,
-    "uPlanetAxis": [0, 0.4, 0.92],
+    "distanceFromStar": 57910000,
+    "orbitalPhase": 0,
+    "radius": 2439.7,
+    "axis": [0, 0.4, 0.92],
     "rotationSpeed": 5,
-    "uPlanetAngle": 0,
+    "angle": 0,
     "useAtmosphere": false,
-    "uAtmosphereHeight": 100,
-    "atmosphereRayleighScaleHeight": 8,
-    "uMieScaleHeight": 1.5,
-    "uMiePreferredScatteringDirection": 0.96,
-    "uMieBetaAbsorption": 0,
-    "atmSteps": 64,
-    "secondAtmSteps": 4,
-    "uUseMie": true,
-    "useTransmittance": true,
+    "textureUrl": "earth.jpg"
+  },
+  {
+    "starIndex": 0,
+    "distanceFromStar": 108000000,
+    "orbitalPhase": 90,
+    "radius": 6051.8,
+    "axis": [0, 0.4, 0.92],
+    "rotationSpeed": 5,
+    "angle": 0,
+    "useAtmosphere": false,
+    "textureUrl": "earth.jpg"
+  },
+  {
+    "starIndex": 0,
+    "distanceFromStar": 150000000,
+    "orbitalPhase": 210,
+    "radius": 6371,
+    "axis": [0, 0.4, 0.92],
+    "rotationSpeed": 5,
+    "angle": 0,
+    "useAtmosphere": false,
+    "textureUrl": "earth.jpg"
+  },
+  {
+    "starIndex": 0,
+    "distanceFromStar": 228000000,
+    "orbitalPhase": 270,
+    "radius": 3389.5,
+    "axis": [0, 0.4, 0.92],
+    "rotationSpeed": 5,
+    "angle": 0,
+    "useAtmosphere": false,
+    "textureUrl": "earth.jpg"
+  },
+  {
+    "starIndex": 0,
+    "distanceFromStar": 778000000,
+    "orbitalPhase": 320,
+    "radius": 69911,
+    "axis": [0, 0.4, 0.92],
+    "rotationSpeed": 5,
+    "angle": 0,
+    "useAtmosphere": false,
+    "textureUrl": "earth.jpg"
+  },
+  {
+    "starIndex": 0,
+    "distanceFromStar": 1430000000,
+    "orbitalPhase": 150,
+    "radius": 58232,
+    "axis": [0, 0.4, 0.92],
+    "rotationSpeed": 5,
+    "angle": 0,
+    "useAtmosphere": false,
     "textureUrl": "earth.jpg"
   }
 ]

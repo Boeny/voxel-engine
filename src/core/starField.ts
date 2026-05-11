@@ -3,6 +3,7 @@ import { AdditiveBlending, BufferAttribute, BufferGeometry, Object3D, Points, Sh
 
 import starsData from '@/data/stars.json';
 
+import { LY_TO_KM } from './const';
 import { pow4 } from './utils';
 
 export interface Star {
@@ -12,7 +13,6 @@ export interface Star {
   radius: number; // in km
 }
 
-const LY_TO_KM = 9.461e12;
 const SUN_TEMPERATURE = 5778;
 
 function sphericalToCartesian(rightAscension: number, declination: number, distance: number): Vector3 {
@@ -76,8 +76,8 @@ function parseStarCatalog(stars: typeof starsData): Star[] {
 
 const starVert = `
 attribute vec3 starColor;
-attribute float surfaceBrightness;
-attribute float radiusKm;
+attribute float luminosity;
+attribute float radius;
 
 uniform vec3 uCameraPositionLy;
 uniform float uPixelAngularSize;
@@ -88,7 +88,7 @@ uniform float uMaxRadius;
 uniform float uMinBrightness;
 uniform float uMaxBrightness;
 
-const float LY_TO_KM = 9.461e12;
+uniform float LY_TO_KM;
 const float PI = 3.14159265359;
 
 varying vec3 vColor;
@@ -106,7 +106,7 @@ void main() {
     gl_Position = clipPosition;
 
     float distanceKm = distanceLy * LY_TO_KM;
-    float angularRadius = atan(radiusKm / distanceKm);
+    float angularRadius = atan(radius / distanceKm);
     float pixelRadius = angularRadius / uPixelAngularSize * uRadiusMultiplier;
 
     // Sprite size: 2 * pixelRadius (diameter), but clamped to user-configurable range
@@ -115,7 +115,7 @@ void main() {
     // Per-pixel brightness: surface brightness times (star area / rendered disc area), capped at 1
     // (when clamped to uMaxRadius, can't exceed physical surface brightness)
     float fillRatio = min(1.0, 4.0 * pixelRadius * pixelRadius / (gl_PointSize * gl_PointSize));
-    float perPixel = surfaceBrightness * fillRatio;
+    float perPixel = luminosity * fillRatio;
     vColor = starColor * clamp(perPixel * uBrightnessMultiplier, uMinBrightness, uMaxBrightness);
 }
 `;
@@ -164,8 +164,8 @@ export class StarField {
     this.geometry = new BufferGeometry();
     this.geometry.setAttribute('position', new BufferAttribute(positions, 3));
     this.geometry.setAttribute('starColor', new BufferAttribute(colors, 3));
-    this.geometry.setAttribute('surfaceBrightness', new BufferAttribute(surfaceBrightnesses, 1));
-    this.geometry.setAttribute('radiusKm', new BufferAttribute(radii, 1));
+    this.geometry.setAttribute('luminosity', new BufferAttribute(surfaceBrightnesses, 1));
+    this.geometry.setAttribute('radius', new BufferAttribute(radii, 1));
 
     this.material = new ShaderMaterial({
       vertexShader: starVert,
@@ -179,6 +179,7 @@ export class StarField {
         uMaxRadius: { value: 0 },
         uMinBrightness: { value: 0 },
         uMaxBrightness: { value: 0 },
+        LY_TO_KM: { value: LY_TO_KM },
       },
       blending: AdditiveBlending,
       depthWrite: false,

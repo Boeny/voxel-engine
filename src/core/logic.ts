@@ -1,8 +1,10 @@
 import { PerspectiveCamera, Scene, Vector3 } from 'three';
 
+import planetsData from '@/data/planets.json';
 import { SelectableObject } from '@/types';
 
 import { Planet } from './planet';
+import { PlanetField } from './planetField';
 import { StarField } from './starField';
 import { getDistanceText, setDOMContent } from './utils';
 
@@ -13,6 +15,7 @@ export class GameLogic {
   private isGrounded = true;
   velocity = new Vector3();
   starField: StarField;
+  planetField: PlanetField;
 
   constructor(
     private camera: PerspectiveCamera,
@@ -20,6 +23,15 @@ export class GameLogic {
   ) {
     this.starField = new StarField();
     this.scene.add(this.starField.object);
+
+    for (const planetData of planetsData) {
+      const { starIndex, ...params } = planetData;
+      const star = this.starField.parsedStars[starIndex];
+      this.planets.push(new Planet(params, star));
+    }
+
+    this.planetField = new PlanetField(this.planets);
+    this.scene.add(this.planetField.object);
   }
 
   update(_delta: number) {
@@ -58,10 +70,7 @@ export class GameLogic {
 
     this.camera.updateMatrixWorld();
     this.starField.update(this.camera.position, this.camera.fov, window.innerHeight);
-
-    // for (const planet of this.planets) {
-    //   planet.update(delta, this.camera);
-    // }
+    this.planetField.update(this.camera.position);
   }
 
   updateHUD(delta: number, selectedObject: SelectableObject | null) {
@@ -85,5 +94,7 @@ export class GameLogic {
     }
     this.scene.remove(this.starField.object);
     this.starField.dispose();
+    this.scene.remove(this.planetField.object);
+    this.planetField.dispose();
   }
 }
