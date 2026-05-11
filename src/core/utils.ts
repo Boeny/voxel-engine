@@ -1,3 +1,4 @@
+/* eslint-disable import/no-unused-modules */
 /* eslint-disable camelcase */
 import { Vector3 } from 'three';
 
@@ -79,27 +80,33 @@ export function getDistanceText(meters: number): string {
   return getDistanceForUnits(mln_ly, ' mln l.y.') || 'too much';
 }
 
-export function getControlParams<T extends string>(object: Record<T, any>, params: Partial<Record<T, any[]>>): Record<string, any> {
-  return mapObjectValues(params as Record<T, [number, number, number]>, (field, value) => {
+export function getControlParams<T extends string>(
+  object: Record<T, any>,
+  params: Partial<Record<T, any[]>>,
+  convert?: (v: any) => any,
+): Record<string, any> {
+  return mapObjectValues(params as Record<T, [number, number, number]>, ({ key: field, value }) => {
     return {
       value: object[field],
       min: value[0],
       max: value[1],
       step: value[2],
       onChange: (newValue: any) => {
-        object[field] = newValue;
+        object[field] = convert ? convert(newValue) : newValue;
       },
       transient: true,
     };
   });
 }
 
+// eslint-disable-next-line import/no-unused-modules
 export function angleToRad(angle: number): number {
   return (angle * Math.PI) / 180;
 }
 
 // clean functions with vectors
 
+// eslint-disable-next-line import/no-unused-modules
 export function add(a: Vector3, b: Vector3): Vector3 {
   return a.clone().add(b);
 }
@@ -126,19 +133,20 @@ export function arrayToVector(array: number[]): Vector3 {
   return new Vector3(array[0], array[1], array[2]);
 }
 
-export function mapObject<K1 extends keyof any, K2 extends keyof any, V1, V2>(
+function mapObject<K1 extends keyof any, K2 extends keyof any, V1, V2>(
   obj: Record<K1, V1>,
-  fn: (key: K1, value: V1) => [K2, V2],
+  fn: (params: { key: K1; value: V1 }) => [K2, V2],
 ): Record<K2, V2> {
-  return Object.fromEntries(Object.entries<V1>(obj).map(([key, value]) => fn(key as K1, value))) as Record<K2, V2>;
+  return Object.fromEntries(Object.entries<V1>(obj).map(([key, value]) => fn({ key: key as K1, value }))) as Record<K2, V2>;
 }
 
-export function mapObjectValues<K extends keyof any, V1, V2>(obj: Record<K, V1>, fn: (key: K, value: V1) => V2): Record<K, V2> {
-  return mapObject(obj, (key, value) => [key, fn(key, value)]);
+export function mapObjectValues<K extends keyof any, V1, V2>(obj: Record<K, V1>, fn: (params: { key: K; value: V1 }) => V2): Record<K, V2> {
+  return mapObject(obj, (params) => [params.key, fn(params)]);
 }
 
-export function mapObjectReverse<K extends string, V extends string>(obj: Record<K, V>): Record<V, K> {
-  return mapObject(obj, (key, value) => [value, key]);
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+function mapObjectReverse<K extends string, V extends string>(obj: Record<K, V>): Record<V, K> {
+  return mapObject(obj, ({ key, value }) => [value, key]);
 }
 
 // ----

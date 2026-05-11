@@ -1,38 +1,40 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import { memo } from 'react';
 
 import { useControls } from 'leva';
 
 import { Planet } from '@/core/planet';
-import { Star } from '@/core/star';
+import { Star } from '@/core/starField';
 import { getControlParams } from '@/core/utils';
 import { useStore } from '@/store';
+import { SelectableObject } from '@/types';
 
-function PlanetParams({ selectedObject }: { selectedObject: Planet }) {
-  useControls('Selected Object Settings', () => {
-    return getControlParams(selectedObject, {
-      useAtmosphere: [],
-      atmosphereUseMie: [],
-      useTransmittance: [],
-      radius: [1000, 7000, 1],
-      atmosphereHeight: [0, 300, 1],
-      rotationSpeed: [0, 100, 0.01],
-      angle: [0, 360, 0.01],
-      atmosphereRayleighScaleHeight: [5, 20, 0.1], // 5-8 km (standart 8), density falloff for blue sky: 25% of atmosphere thickness
-      atmosphereMieScaleHeight: [0, 5, 0.1], // 2-5 km (standart 1,5-2,5), density falloff for sun halo: 5% of atmosphere thickness
-      atmosphereMiePreferredScatteringDirection: [-1, 1, 0.01], // > 0: Sun halo, 0.75- 0.95
-      atmosphereMieAbsorption: [0, 1, 0.1], // standart - 10% of scattering
-      atmosphereRaymarchStepsCount: [1, 128, 8], // 16
-      secondAtmSteps: [1, 32, 4],
-    });
-  });
+// function PlanetParams({ selectedObject }: { selectedObject: Planet }) {
+//   useControls('Selected Object Settings', () => {
+//     return getControlParams(selectedObject, {
+//       useAtmosphere: [],
+//       atmosphereUseMie: [],
+//       useTransmittance: [],
+//       radius: [1000, 7000, 1],
+//       atmosphereHeight: [0, 300, 1],
+//       rotationSpeed: [0, 100, 0.01],
+//       angle: [0, 360, 0.01],
+//       atmosphereRayleighScaleHeight: [5, 20, 0.1], // 5-8 km (standart 8), density falloff for blue sky: 25% of atmosphere thickness
+//       atmosphereMieScaleHeight: [0, 5, 0.1], // 2-5 km (standart 1,5-2,5), density falloff for sun halo: 5% of atmosphere thickness
+//       atmosphereMiePreferredScatteringDirection: [-1, 1, 0.01], // > 0: Sun halo, 0.75- 0.95
+//       atmosphereMieAbsorption: [0, 1, 0.1], // standart - 10% of scattering
+//       atmosphereRaymarchStepsCount: [1, 128, 8], // 16
+//       secondAtmSteps: [1, 32, 4],
+//     });
+//   });
 
-  return null;
-}
+//   return null;
+// }
 
 function StarParams({ selectedObject }: { selectedObject: Star }) {
   useControls('Selected Object Settings', () => {
     return getControlParams(selectedObject, {
-      intensity: [0.1, 100, 0.01],
+      luminosity: [0.1, 100, 0.01],
     });
   });
 
@@ -42,12 +44,16 @@ function StarParams({ selectedObject }: { selectedObject: Star }) {
 function SelectedObjectParams() {
   const selectedObject = useStore((state) => state.selectedObject);
 
-  if (selectedObject instanceof Planet) {
-    return <PlanetParams selectedObject={selectedObject} />;
+  if (!selectedObject) {
+    return null;
   }
 
-  if (selectedObject instanceof Star) {
-    return <StarParams selectedObject={selectedObject} />;
+  // if (selectedObject instanceof Planet) {
+  //   return <PlanetParams selectedObject={selectedObject} />;
+  // }
+
+  if (selectedObject.type === 'star') {
+    return <StarParams selectedObject={selectedObject as any} />;
   }
 
   return null;
@@ -57,6 +63,7 @@ function SelectableObjects() {
   const objects = useStore((state) => state.objects);
   const select = useStore((state) => state.select);
   const selectedObject = useStore((state) => state.selectedObject);
+  console.log(objects);
 
   return (
     <div className="absolute left-4 top-1/2 -translate-y-1/2 z-10 flex flex-col gap-1.5">
@@ -106,6 +113,7 @@ export const EditorHUD = memo(() => {
       <div className="absolute top-4 left-4 z-10 text-white font-mono text-sm pointer-events-none drop-shadow-md bg-black/30 p-2 rounded">
         <div id="hud-fps"></div>
         <div id="hud-altitude"></div>
+        <div id="hud-speed"></div>
         <div id="hud-grounded"></div>
         <div id="hud-position"></div>
         <div id="hud-exposure"></div>

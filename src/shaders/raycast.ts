@@ -1,8 +1,29 @@
 export const raycastVert = `
+uniform vec3 uPlanetCenter;
+uniform float uPlanetRadius;
+uniform float uAtmosphereHeight;
+
 varying vec2 vNdc;
+
 void main() {
-    vNdc = position.xy;
-    gl_Position = vec4(position.xy, 1.0, 1.0);
+    float boundingRadius = uPlanetRadius + uAtmosphereHeight;
+    // uPlanetCenter is camera-relative (camera at origin), so apply only rotation (w=0)
+    vec3 centerView = (viewMatrix * vec4(uPlanetCenter, 0.0)).xyz;
+
+    // Camera inside bounding sphere → fullscreen quad fallback
+    if (length(centerView) < boundingRadius) {
+        gl_Position = vec4(position.xy, 1.0, 1.0);
+        vNdc = position.xy;
+        return;
+    }
+
+    // Camera-aligned billboard at planet center, size = 2 * boundingRadius
+    vec3 cornerView = centerView + vec3(position.xy * boundingRadius, 0.0);
+    vec4 clipPosition = projectionMatrix * vec4(cornerView, 1.0);
+    // Pin to far plane to bypass camera.far clipping (depthTest is off anyway)
+    clipPosition.z = clipPosition.w;
+    gl_Position = clipPosition;
+    vNdc = clipPosition.xy / clipPosition.w;
 }
 `;
 
@@ -15,16 +36,8 @@ varying vec2 vNdc;
 uniform mat4 projectionMatrixInverse;
 uniform mat4 viewMatrixInverse;
 
-uniform vec3  uSunDirection;      // from planet to star (for atmosphere scattering)
-uniform vec3  uSunDirFromCamera;  // from camera to star (for sun disk, corona, phase)
+uniform vec3  uSunDirection; // from planet to star (for atmosphere scattering)
 uniform float uSunIntensity;
-uniform float uSunAngularRadius;
-uniform float coronaIntensity;
-uniform float coronaRadius;
-
-uniform sampler2D uStarMap;
-uniform float uStarBrightness;
-uniform float uMinDiskAngularSize;
 
 uniform vec3  uPlanetCenter;
 uniform float uPlanetRadius;
@@ -45,9 +58,7 @@ uniform float uMiePreferredScatteringDirection;
 // ── Feature toggles (controlled at runtime via UI checkboxes) ─────
 uniform bool useAtmosphere;
 uniform bool uUseMie;
-uniform bool uUseStars;
 uniform bool useTransmittance;
-// ─────────────────────────────────────────────────────────────────
 
 // ── Geometry ──────────────────────────────────────────────────────
 
@@ -161,25 +172,6 @@ void sampleAtmosphere(
     }
 }
 
-// ── Sun disk ──────────────────────────────────────────────────────
-// Physical disk with limb darkening
-vec3 getStarDisk(vec3 rayDirection, vec3 starDirection, float angularRadius, float intensity, vec3 color) {
-    float angle = acos(clamp(dot(rayDirection, starDirection), -1.0, 1.0));
-    float mu = max(0.0, 1.0 - angle / angularRadius);
-    float limb = 0.4 + 0.6 * sqrt(mu);
-    float disk = smoothstep(angularRadius * 1.02, angularRadius * 0.98, angle);
-    return color * disk * limb * intensity;
-}
-
-// ── Stars ─────────────────────────────────────────────────────────
-
-vec3 getStars(vec3 rayDirection) {
-    float polarAngle = acos(clamp(rayDirection.y, -1.0, 1.0));
-    float azimuth = atan(rayDirection.z, rayDirection.x);
-    vec2 equirectUV = vec2(0.5 + azimuth / (2.0 * PI), polarAngle / PI);
-    return texture2D(uStarMap, equirectUV).rgb * uStarBrightness;
-}
-
 // ── Main ──────────────────────────────────────────────────────────
 
 void main() {
@@ -213,7 +205,9 @@ void main() {
         distThrough = max(0.0, distThrough);
     }
 
-    // Atmosphere scatter
+    // Ray missed bounding sphere → no planet, no atmosphere → let stars show through
+    if (!hitGround && distThrough <= 0.0) discard;
+
     vec3 totalR = vec3(0.0), totalM = vec3(0.0);
     float rOD = 0.0;
     float mOD = 0.0;
@@ -262,16 +256,6 @@ void main() {
         sunTr *= smoothstep(-0.08, 0.12, sunDotN); // soft terminator
 
         finalColor += viewTr * (groundColor * sunTr * max(sunDotN, 0.0) * uSunIntensity);
-    } else {
-        // Render Sun as 3D disk only when close enough; otherwise it's on the star map
-        if (uSunAngularRadius >= uMinDiskAngularSize) {
-            //finalColor += getStarDisk(rayDir, uSunDirFromCamera, uSunAngularRadius, uSunIntensity, vec3(1.0, 0.97, 0.88)) * viewTr;
-            //finalColor += getSunCorona(rayDir) * viewTr;
-        }
-
-        if (uUseStars) {
-            finalColor += getStars(rayDir);
-        }
     }
     if (useAtmosphere) {
         finalColor += atmColor;

@@ -1,93 +1,141 @@
-import { TextureLoader, Vector3 } from 'three';
+import { Matrix4, Mesh, PerspectiveCamera, PlaneGeometry, Scene, ShaderMaterial, TextureLoader, Vector3 } from 'three';
+
+import { raycastFrag, raycastVert } from '../shaders/raycast';
 
 import { shaderParam } from './decorators';
-import { SelectableObject } from './selectableObject';
-import { arrayToVector, mapObjectReverse, mapObjectValues } from './utils';
+import { mapObjectValues, sub } from './utils';
 
-type PlanetParams = {
-  position: number[];
-  rotation: number[];
-  radius: number;
-  rotationSpeed: number;
-  angle: number;
-  useAtmosphere: boolean;
-  atmosphereHeight: number;
-  atmosphereRayleighScaleHeight: number;
-  atmosphereMieScaleHeight: number;
-  atmosphereMiePreferredScatteringDirection: number;
-  atmosphereMieAbsorption: number;
-  atmosphereRaymarchStepsCount: number;
+type ShaderParams = {
+  uPlanetAngle: number;
+  uPlanetAxis: Vector3;
+  uPlanetRadius: number;
+  uAtmosphereHeight: number;
+  uRayleighScaleHeight: number;
+  uMieScaleHeight: number;
+  uMiePreferredScatteringDirection: number;
+  uMieBetaAbsorption: number;
+  atmSteps: number;
   secondAtmSteps: number;
-  atmosphereUseMie: boolean;
+  useAtmosphere: boolean;
+  uUseMie: boolean;
   useTransmittance: boolean;
+  uEarthTexture: string | null;
+};
+
+const SHADER_PARAMS: ShaderParams = {
+  uRayleighScaleHeight: 0,
+  uMieScaleHeight: 0,
+  uMiePreferredScatteringDirection: 0,
+  uMieBetaAbsorption: 0,
+  atmSteps: 0,
+  secondAtmSteps: 0,
+  uPlanetRadius: 0,
+  uPlanetAxis: new Vector3(),
+  uPlanetAngle: 0,
+  uAtmosphereHeight: 0,
+  useAtmosphere: false,
+  uUseMie: true,
+  useTransmittance: true,
+  uEarthTexture: null,
+};
+
+type PlanetParams = ShaderParams & {
+  position: number[];
+  rotationSpeed: number;
   textureUrl: string;
 };
-const SHADER_PLANET: Record<string, keyof Omit<PlanetParams, 'textureUrl'> | 'texture'> = {
-  uRayleighScaleHeight: 'atmosphereRayleighScaleHeight',
-  uMieScaleHeight: 'atmosphereMieScaleHeight',
-  uMiePreferredScatteringDirection: 'atmosphereMiePreferredScatteringDirection',
-  uMieBetaAbsorption: 'atmosphereMieAbsorption',
-  atmSteps: 'atmosphereRaymarchStepsCount',
-  secondAtmSteps: 'secondAtmSteps',
-  uPlanetRadius: 'radius',
-  uPlanetAxis: 'rotation',
-  uPlanetAngle: 'angle',
-  uAtmosphereHeight: 'atmosphereHeight',
-  useAtmosphere: 'useAtmosphere',
-  uUseMie: 'atmosphereUseMie',
-  useTransmittance: 'useTransmittance',
-  uEarthTexture: 'texture',
-} as const;
-const PLANET_SHADER = mapObjectReverse(SHADER_PLANET);
 
-export class Planet extends SelectableObject {
+export class Planet {
   rotationSpeed!: number;
+  position!: Vector3;
 
-  static shaderParams = mapObjectValues(SHADER_PLANET, (key) => {
-    if (key === PLANET_SHADER.rotation) {
-      return new Vector3();
-    }
-    if (key === PLANET_SHADER.texture) {
-      return null;
-    }
-    if ([PLANET_SHADER.useAtmosphere, PLANET_SHADER.atmosphereUseMie, PLANET_SHADER.useTransmittance].includes(key)) {
-      return false;
-    }
+  @shaderParam() uPlanetAngle!: number;
+  @shaderParam() uPlanetAxis!: Vector3;
+  @shaderParam() uPlanetRadius!: number;
+  @shaderParam() uAtmosphereHeight!: number;
+  @shaderParam() uRayleighScaleHeight!: number;
+  @shaderParam() uMieScaleHeight!: number;
+  @shaderParam() uMiePreferredScatteringDirection!: number;
+  @shaderParam() uMieBetaAbsorption!: number;
+  @shaderParam() atmSteps!: number;
+  @shaderParam() secondAtmSteps!: number;
+  @shaderParam() useAtmosphere!: boolean;
+  @shaderParam() uUseMie!: boolean;
+  @shaderParam() useTransmittance!: boolean;
 
-    return 0;
-  });
+  private material: ShaderMaterial;
+  private mesh: Mesh;
 
-  // Simple 1:1 shader param mappings
-  @shaderParam(PLANET_SHADER) angle!: number;
-  @shaderParam(PLANET_SHADER) rotation!: Vector3;
-  @shaderParam(PLANET_SHADER) radius!: number;
-  @shaderParam(PLANET_SHADER) atmosphereHeight!: number;
-  @shaderParam(PLANET_SHADER) atmosphereRayleighScaleHeight!: number;
-  @shaderParam(PLANET_SHADER) atmosphereMieScaleHeight!: number;
-  @shaderParam(PLANET_SHADER) atmosphereMiePreferredScatteringDirection!: number;
-  @shaderParam(PLANET_SHADER) atmosphereMieAbsorption!: number;
-  @shaderParam(PLANET_SHADER) atmosphereRaymarchStepsCount!: number;
-  @shaderParam(PLANET_SHADER) secondAtmSteps!: number;
-  @shaderParam(PLANET_SHADER) useAtmosphere!: number;
-  @shaderParam(PLANET_SHADER) atmosphereUseMie!: boolean;
-  @shaderParam(PLANET_SHADER) useTransmittance!: boolean;
+  constructor({ textureUrl, ...params }: PlanetParams) {
+    Object.entries(params).forEach(([key, value]) => ((this as any)[key] = value));
 
-  constructor(
-    { position, rotation, textureUrl, ...other }: PlanetParams,
-    private setShaderParams: (params: Record<string, any>) => void,
-  ) {
-    super('planet');
-    this.position = arrayToVector(position);
-    this.rotation = arrayToVector(rotation);
+    this.material = new ShaderMaterial({
+      vertexShader: raycastVert,
+      fragmentShader: raycastFrag,
+      uniforms: {
+        ...mapObjectValues(SHADER_PARAMS, ({ value }) => ({ value })),
 
-    Object.entries(other).forEach(([key, value]) => ((this as any)[key] = value));
+        projectionMatrixInverse: { value: new Matrix4() },
+        viewMatrixInverse: { value: new Matrix4() },
+        uPlanetCenter: { value: new Vector3() },
+        uSunDirection: { value: new Vector3() },
+        uSunIntensity: { value: 0 },
+
+        uRayleighBeta: { value: new Vector3(5.5e-3, 13.0e-3, 22.4e-3) },
+        uMieBetaScattering: { value: 21e-3 },
+      },
+      depthWrite: false,
+      depthTest: false,
+      transparent: true,
+    });
+
+    const geometry = new PlaneGeometry(2, 2);
+    this.mesh = new Mesh(geometry, this.material);
+    this.mesh.frustumCulled = false;
+    this.mesh.renderOrder = 1000;
 
     new TextureLoader().load(textureUrl, (texture) => {
       this.setShaderParams({ uEarthTexture: texture });
     });
   }
 
-  rotate(angle: number) {
-    this.angle += angle;
+  setShaderParams = (params: Record<string, any>) => {
+    if (!this.material) {
+      return;
+    }
+    for (const field in params) {
+      if (Object.hasOwn(params, field)) {
+        this.material.uniforms[field].value = params[field];
+      }
+    }
+  };
+
+  addToScene(scene: Scene) {
+    scene.add(this.mesh);
+  }
+
+  removeFromScene(scene: Scene) {
+    scene.remove(this.mesh);
+  }
+
+  rotate(angleDegrees: number) {
+    this.uPlanetAngle += angleDegrees;
+  }
+
+  update(delta: number, camera: PerspectiveCamera, starPosition: Vector3, starIntensity: number) {
+    this.rotate(this.rotationSpeed * delta);
+
+    this.setShaderParams({
+      projectionMatrixInverse: camera.projectionMatrixInverse,
+      viewMatrixInverse: camera.matrixWorld,
+      uPlanetCenter: sub(this.position, camera.position),
+      uSunDirection: sub(starPosition, this.position).normalize(),
+      uSunIntensity: starIntensity,
+    });
+  }
+
+  dispose() {
+    this.material.dispose();
+    this.mesh.geometry.dispose();
   }
 }

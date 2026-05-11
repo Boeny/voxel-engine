@@ -1,16 +1,16 @@
-import { Camera, Vector3 } from 'three';
+import { Vector3 } from 'three';
 
-import mapData from '@/data/map.json';
 import { keys, setupKeyboardEvents } from '@/events';
-import { AppState } from '@/store';
+
+import { SelectableObject } from '../types';
 
 import { Controller } from './controller';
-import { SelectableObject } from './selectableObject';
-import { arrayToVector, norm, setDOMContent, sub } from './utils';
+import { add, getDistanceText, norm, setDOMContent, sub } from './utils';
 
-export class EditorController extends Controller<AppState> {
+export class EditorController extends Controller {
   // config
-  sensitivity = 0.003;
+  sensitivity = 0.005;
+  maxSpeed = 1e15;
 
   // state
   mouseDelta = { x: 0, y: 0 };
@@ -19,26 +19,16 @@ export class EditorController extends Controller<AppState> {
   wheelDelta = 0;
   previousMousePosition = { x: 0, y: 0 };
 
-  constructor(camera: Camera, getState: () => AppState) {
-    super(camera, getState);
-    camera.position.copy(arrayToVector(mapData.planet.position).add(new Vector3(0, mapData.planet.radius * 2, 0)));
-    camera.lookAt(arrayToVector(mapData.planet.position));
-  }
-
-  switchMenu() {
-    if (this.state.gameState === 'paused') {
-      this.state.setGameState('playing');
-    }
-    if (this.state.gameState === 'playing') {
-      this.state.setGameState('paused');
-    }
-  }
-
-  setupEvents() {
+  setupEvents(getGameState: () => 'playing' | 'paused', setGameState: (getGameState: 'playing' | 'paused') => void) {
     const cleanupKeyboardEvents = setupKeyboardEvents({
       keydown: (e) => {
         if (e.code === 'Escape') {
-          this.switchMenu();
+          if (getGameState() === 'paused') {
+            setGameState('playing');
+          }
+          if (getGameState() === 'playing') {
+            setGameState('paused');
+          }
         }
       },
     });
@@ -110,7 +100,12 @@ export class EditorController extends Controller<AppState> {
 
     // Logarithmic-like scale for speed.
     // In close range it's small, in far range it's large.
-    const speedScale = Math.max(5.0, effectiveDist * 2.0);
+    let speedScale = Math.max(5.0, effectiveDist * 2.0);
+
+    if (this.maxSpeed) {
+      speedScale = Math.min(this.maxSpeed, speedScale);
+    }
+
     const moveSpeed = speedScale * delta;
 
     // Local Movement (WASD)
@@ -150,10 +145,11 @@ export class EditorController extends Controller<AppState> {
     }
 
     if (moveDir.lengthSq() > 0) {
-      moveDir.normalize().multiplyScalar(moveSpeed);
-      this.camera.position.add(moveDir);
+      this.setVelocity(norm(moveDir).multiplyScalar(moveSpeed));
       vectorFromObject = sub(this.camera.position, selectedObject.position);
       distanceToObject = vectorFromObject.length();
+    } else {
+      this.setVelocity();
     }
 
     // Left Drag -> Look around freely
@@ -178,8 +174,8 @@ export class EditorController extends Controller<AppState> {
       const orbitRight = new Vector3(1, 0, 0).applyQuaternion(this.camera.quaternion);
 
       const newOffset = vectorFromObject.clone().applyAxisAngle(orbitUp, angleH).applyAxisAngle(orbitRight, angleV);
+      this.setNewPosition(add(selectedObject.position, newOffset));
 
-      this.camera.position.copy(selectedObject.position).add(newOffset);
       this.camera.up.copy(orbitUp);
       this.camera.lookAt(selectedObject.position);
 
@@ -198,9 +194,9 @@ export class EditorController extends Controller<AppState> {
         newDist = 0.1;
       }
 
-      const newVector = norm(vectorFromObject).multiplyScalar(newDist);
+      const newOffset = norm(vectorFromObject).multiplyScalar(newDist);
       // Only apply if it doesn't push us into the planet (checked below)
-      this.camera.position.copy(selectedObject.position).add(newVector);
+      this.setNewPosition(add(selectedObject.position, newOffset));
 
       this.wheelDelta = 0;
 
@@ -208,8 +204,16 @@ export class EditorController extends Controller<AppState> {
     }
   }
 
+  setVelocity(v?: Vector3) {
+    this.velocity.copy(v || new Vector3());
+  }
+  setNewPosition(pos: Vector3) {
+    this.setVelocity(sub(pos, this.camera.position));
+  }
+
   updateHUD(_delta: number, _selectedObject: SelectableObject | null) {
     const { x, y, z } = this.camera.position;
     setDOMContent('hud-position', `Position: (${x.toFixed(2)}, ${y.toFixed(2)}, ${z.toFixed(2)})`);
+    setDOMContent('hud-speed', `Speed: ${getDistanceText(this.velocity.length() * 1000)}/s`);
   }
 }

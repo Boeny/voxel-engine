@@ -1,19 +1,13 @@
 import { Camera, Vector3, WebGLRenderer } from 'three';
 
-export class Controller<State> {
+export class Controller {
   velocity = new Vector3();
+  defaultCameraPosition!: Vector3;
 
-  constructor(
-    protected camera: Camera,
-    private getState: () => State,
-  ) {}
+  constructor(protected camera: Camera) {}
 
-  get state(): State {
-    return this.getState();
-  }
-
-  setupEvents(): () => void {
+  setupEvents(_getGameState: () => 'playing' | 'paused', _setGameState: (gameState: 'playing' | 'paused') => void): () => void {
     return () => {};
   }
-  onGameStateChange(_: WebGLRenderer) {}
+  onGameStateChange(_gameState: 'playing' | 'paused', _renderer: WebGLRenderer) {}
 }

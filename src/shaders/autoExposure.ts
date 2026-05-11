@@ -65,7 +65,7 @@ export class AutoExposureEffect extends Effect {
   minLum = 0.001; // starlight level
   midLum = 1.0; // normal lighting
   maxLum = 100.0; // sun glare
-  bloomThreshold = 0.5;
+  bloomThreshold = 1.0;
 
   constructor() {
     super('AutoExposureEffect', mainFrag, {

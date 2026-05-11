@@ -1,15 +1,14 @@
-import { Camera, Vector3, WebGLRenderer } from 'three';
+import { Vector3, WebGLRenderer } from 'three';
 
-import mapData from '@/data/map.json';
 import { keys, setupKeyboardEvents } from '@/events';
-import { AppState } from '@/store';
+
+import { SelectableObject } from '../types';
 
 import { Controller } from './controller';
 import { PointerLock } from './pointerLock';
-import { SelectableObject } from './selectableObject';
-import { add, arrayToVector, getDistanceText, mul, norm, setDOMContent, sub } from './utils';
+import { getDistanceText, mul, norm, setDOMContent, sub } from './utils';
 
-export class PlayerController extends Controller<AppState> {
+export class PlayerController extends Controller {
   // components
   pointerLock = new PointerLock();
 
@@ -23,47 +22,24 @@ export class PlayerController extends Controller<AppState> {
   gravity = 10; // m/s2
   jumpForce = 0.005;
 
-  constructor(camera: Camera, getState: () => AppState) {
-    super(camera, getState);
-
-    // Spawn on planet surface along +Y (dayside when star is above)
-    const planetPos = arrayToVector(mapData.planet.position);
-    const spawnDir = new Vector3(0, 1, 0);
-    camera.position.copy(planetPos).addScaledVector(spawnDir, mapData.planet.radius + 2 / 1000); // TODO: get player position from the map
-
-    // Orient camera: stand on surface, look along Z
-    camera.up.copy(spawnDir);
-    camera.lookAt(add(camera.position, new Vector3(0, 0, 1)));
-  }
-
-  switchMenu() {
-    if (this.state.gameState === 'paused') {
-      this.state.setGameState('playing');
-    }
-  }
-
-  onMouseUnlock() {
-    this.state.setGameState('paused');
-  }
-
-  onGameStateChange(renderer: WebGLRenderer): void {
-    if (this.state.gameState === 'playing') {
+  onGameStateChange(gameState: 'playing' | 'paused', renderer: WebGLRenderer): void {
+    if (gameState === 'playing') {
       this.pointerLock.requestPointerLock(renderer.domElement);
     }
   }
 
-  setupEvents() {
+  setupEvents(getGameState: () => 'playing' | 'paused', setGameState: (gameState: 'playing' | 'paused') => void) {
     const cleanupKeyboardEvents = setupKeyboardEvents({
       keydown: (e) => {
-        if (e.code === 'Escape') {
-          this.switchMenu();
+        if (e.code === 'Escape' && getGameState() === 'paused') {
+          setGameState('playing');
         }
       },
     });
     const cleanupMouseEvents = this.pointerLock.setupEvents({
       onPointerLockChange: (isLocked) => {
         if (!isLocked) {
-          this.onMouseUnlock();
+          setGameState('paused');
         }
       },
     });

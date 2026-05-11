@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 
-import { SelectableObject } from './core/selectableObject';
+import { SelectableObject } from './types';
 
 export type RenderMode = 'atmosphere' | 'voxel';
 

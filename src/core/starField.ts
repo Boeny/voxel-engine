@@ -1,153 +1,213 @@
-import { DataTexture, FloatType, NearestFilter, RGBAFormat, Vector3 } from 'three';
+/* eslint-disable @typescript-eslint/no-unused-vars */
+import { AdditiveBlending, BufferAttribute, BufferGeometry, Object3D, Points, ShaderMaterial, Vector3 } from 'three';
 
 import starsData from '@/data/stars.json';
 
-import { arrayToVector, mul, sub } from './utils';
+import { pow4 } from './utils';
 
-interface ParsedStar {
+export interface Star {
   position: Vector3; // in light years
   color: Vector3;
-  intensity: number;
-  radius: number;
-  coronaIntensity: number;
-  coronaRadius: number;
+  luminosity: number; // (T / T_sun)^4
+  radius: number; // in km
 }
 
-// Approximate star colors by spectral class (linear RGB, not sRGB)
-const STAR_COLORS: Record<string, [number, number, number]> = {
-  O: [0.6, 0.7, 1.0],
-  B: [0.7, 0.8, 1.0],
-  A: [0.9, 0.95, 1.0],
-  F: [1.0, 0.98, 0.9],
-  G: [1.0, 0.95, 0.8],
-  K: [1.0, 0.8, 0.5],
-  M: [1.0, 0.5, 0.3],
-};
+const LY_TO_KM = 9.461e12;
+const SUN_TEMPERATURE = 5778;
 
-function sphericToDecart(rightAscension: number, declination: number, distance: number) {
-  const cosDec = Math.cos(declination);
-  const x = distance * cosDec * Math.cos(rightAscension);
-  const y = distance * cosDec * Math.sin(rightAscension);
-  const z = distance * Math.sin(declination);
+function sphericalToCartesian(rightAscension: number, declination: number, distance: number): Vector3 {
+  const cosDeclination = Math.cos(declination);
 
-  return new Vector3(x, y, z);
+  return new Vector3(
+    distance * cosDeclination * Math.cos(rightAscension),
+    distance * cosDeclination * Math.sin(rightAscension),
+    distance * Math.sin(declination),
+  );
 }
 
-// function getLuminosity(temperature: number) {
-//   return temperature * 100;
-// }
+// Tanner Helland's approximation: blackbody temperature → sRGB chromaticity (normalized so brightest channel = 1)
+function temperatureToLinearRGB(kelvin: number): Vector3 {
+  const t = kelvin / 100;
 
-function parseStarCatalog(stars: typeof starsData): ParsedStar[] {
-  //const sun = stars[0];
+  let r: number;
+  if (t <= 66) {
+    r = 255;
+  } else {
+    r = 329.698727446 * Math.pow(t - 60, -0.1332047592);
+  }
 
+  let g: number;
+  if (t <= 66) {
+    g = 99.4708025861 * Math.log(t) - 161.1195681661;
+  } else {
+    g = 288.1221695283 * Math.pow(t - 60, -0.0755148492);
+  }
+
+  let b: number;
+  if (t >= 66) {
+    b = 255;
+  } else if (t <= 19) {
+    b = 0;
+  } else {
+    b = 138.5177312231 * Math.log(t - 10) - 305.0447927307;
+  }
+
+  const sR = Math.max(0, Math.min(255, r)) / 255;
+  const sG = Math.max(0, Math.min(255, g)) / 255;
+  const sB = Math.max(0, Math.min(255, b)) / 255;
+
+  // sRGB → linear (gamma 2.2 approximation)
+  return new Vector3(Math.pow(sR, 2.2), Math.pow(sG, 2.2), Math.pow(sB, 2.2));
+}
+
+function parseStarCatalog(stars: typeof starsData): Star[] {
   return stars.map((star) => {
-    let spectral = star.spectral_type[0];
-    if (spectral === 'd') {
-      spectral = star.spectral_type[1];
-    }
-
-    //const sunRadiuses = star.radius / sun.radius;
+    const temperature = star.temperature || SUN_TEMPERATURE;
+    const temperatureRatio = temperature / SUN_TEMPERATURE;
 
     return {
-      position: sphericToDecart(star.ascension, star.declination, star.distance_ly),
-      color: arrayToVector(STAR_COLORS[spectral] || STAR_COLORS.M),
-      intensity: 100,
-      // pow4((star.temperature || SPECTRAL_TEMP[spectral]) / sun.temperature) *
-      // (sunRadiuses * sunRadiuses) *
-      // getLuminosity(sun.temperature),
+      position: sphericalToCartesian(star.ascension, star.declination, star.distance_ly),
+      color: temperatureToLinearRGB(temperature),
+      luminosity: pow4(temperatureRatio),
       radius: star.radius,
-      coronaIntensity: 0.001,
-      coronaRadius: 20 * star.radius,
     };
   });
 }
 
-function directionToEquirectUV(direction: Vector3): [number, number] {
-  const theta = Math.acos(Math.max(-1, Math.min(1, direction.y)));
-  const phi = Math.atan2(direction.z, direction.x);
+const starVert = `
+attribute vec3 starColor;
+attribute float surfaceBrightness;
+attribute float radiusKm;
 
-  return [0.5 + phi / (2 * Math.PI), theta / Math.PI];
+uniform vec3 uCameraPositionLy;
+uniform float uPixelAngularSize;
+uniform float uBrightnessMultiplier;
+uniform float uRadiusMultiplier;
+uniform float uMinRadius;
+uniform float uMaxRadius;
+uniform float uMinBrightness;
+uniform float uMaxBrightness;
+
+const float LY_TO_KM = 9.461e12;
+const float PI = 3.14159265359;
+
+varying vec3 vColor;
+
+void main() {
+    vec3 toStarLy = position - uCameraPositionLy;
+    float distanceLy = length(toStarLy);
+
+    vec3 worldDirection = toStarLy / distanceLy;
+    vec4 viewDirection = viewMatrix * vec4(worldDirection, 0.0);
+
+    // Place at far plane (clip-space z = w → NDC z = 1)
+    vec4 clipPosition = projectionMatrix * vec4(viewDirection.xyz, 1.0);
+    clipPosition.z = clipPosition.w;
+    gl_Position = clipPosition;
+
+    float distanceKm = distanceLy * LY_TO_KM;
+    float angularRadius = atan(radiusKm / distanceKm);
+    float pixelRadius = angularRadius / uPixelAngularSize * uRadiusMultiplier;
+
+    // Sprite size: 2 * pixelRadius (diameter), but clamped to user-configurable range
+    gl_PointSize = clamp(2.0 * pixelRadius, uMinRadius, uMaxRadius);
+
+    // Per-pixel brightness: surface brightness times (star area / rendered disc area), capped at 1
+    // (when clamped to uMaxRadius, can't exceed physical surface brightness)
+    float fillRatio = min(1.0, 4.0 * pixelRadius * pixelRadius / (gl_PointSize * gl_PointSize));
+    float perPixel = surfaceBrightness * fillRatio;
+    vColor = starColor * clamp(perPixel * uBrightnessMultiplier, uMinBrightness, uMaxBrightness);
 }
+`;
 
-export class StarMap {
-  LY_TO_KM = 9.461e12;
-  STAR_MAP_REBUILD_DISTANCE = 1; // light years
-  MIN_STAR_DISK_SIZE_PIXELS = 1; // Star disk is rendered in 3D when it spans at least this many pixels on screen
+const starFrag = `
+precision highp float;
 
-  private readonly data: Float32Array;
-  private readonly texture: DataTexture;
-  readonly parsedStars: ParsedStar[] = [];
+varying vec3 vColor;
 
-  private lastStarCameraPositionLy: Vector3 | null = null;
-  private oldFov = 0;
-  private oldWindowHeight = 0;
+void main() {
+    vec2 offset = gl_PointCoord - 0.5;
+    float radius = length(offset);
+    float alpha = 1.0 - smoothstep(0.4, 0.5, radius);
+    if (alpha <= 0.0) discard;
+    gl_FragColor = vec4(vColor * alpha, 1.0);
+}
+`;
 
-  constructor(
-    public width: number,
-    public height: number,
-    private setShaderParams: (params: Record<string, any>) => void,
-  ) {
-    this.data = new Float32Array(width * height * 4);
-    this.texture = new DataTexture(this.data, width, height, RGBAFormat, FloatType);
-    this.texture.minFilter = NearestFilter;
-    this.texture.magFilter = NearestFilter;
-    this.setShaderParams({ uStarMap: this.texture });
+export class StarField {
+  readonly parsedStars: Star[];
+  private readonly material: ShaderMaterial;
+  private readonly geometry: BufferGeometry;
+  private readonly points: Points;
 
+  constructor() {
     this.parsedStars = parseStarCatalog(starsData);
-  }
 
-  private clear() {
-    this.data.fill(0);
-  }
+    const starCount = this.parsedStars.length;
+    const positions = new Float32Array(starCount * 3);
+    const colors = new Float32Array(starCount * 3);
+    const surfaceBrightnesses = new Float32Array(starCount);
+    const radii = new Float32Array(starCount);
 
-  private writeStarPixel(direction: Vector3, color: Vector3, brightness: number) {
-    const [u, v] = directionToEquirectUV(direction);
-    const pixelX = Math.floor(u * this.width) % this.width;
-    const pixelY = Math.floor(v * this.height) % this.height;
-    const index = (pixelY * this.width + pixelX) * 4;
-
-    this.data[index + 0] += color.x * brightness;
-    this.data[index + 1] += color.y * brightness;
-    this.data[index + 2] += color.z * brightness;
-    this.data[index + 3] = 1;
-  }
-
-  private updateMinDiskAngularSize(fov: number, windowHeight: number) {
-    if (fov === this.oldFov && windowHeight === this.oldWindowHeight) {
-      //return;
+    for (let i = 0; i < starCount; i++) {
+      const star = this.parsedStars[i];
+      positions[i * 3 + 0] = star.position.x;
+      positions[i * 3 + 1] = star.position.y;
+      positions[i * 3 + 2] = star.position.z;
+      colors[i * 3 + 0] = star.color.x;
+      colors[i * 3 + 1] = star.color.y;
+      colors[i * 3 + 2] = star.color.z;
+      surfaceBrightnesses[i] = star.luminosity;
+      radii[i] = star.radius;
     }
 
-    this.oldFov = fov;
-    this.oldWindowHeight = windowHeight;
+    this.geometry = new BufferGeometry();
+    this.geometry.setAttribute('position', new BufferAttribute(positions, 3));
+    this.geometry.setAttribute('starColor', new BufferAttribute(colors, 3));
+    this.geometry.setAttribute('surfaceBrightness', new BufferAttribute(surfaceBrightnesses, 1));
+    this.geometry.setAttribute('radiusKm', new BufferAttribute(radii, 1));
 
-    const fovRad = (fov * Math.PI) / 180;
-    const pixelAngularSize = (2 * Math.tan(fovRad / 2)) / windowHeight;
+    this.material = new ShaderMaterial({
+      vertexShader: starVert,
+      fragmentShader: starFrag,
+      uniforms: {
+        uCameraPositionLy: { value: new Vector3() },
+        uPixelAngularSize: { value: 0 },
+        uBrightnessMultiplier: { value: 0 },
+        uRadiusMultiplier: { value: 0 },
+        uMinRadius: { value: 0 },
+        uMaxRadius: { value: 0 },
+        uMinBrightness: { value: 0 },
+        uMaxBrightness: { value: 0 },
+      },
+      blending: AdditiveBlending,
+      depthWrite: false,
+      depthTest: false,
+      transparent: true,
+    });
 
-    this.setShaderParams({ uMinDiskAngularSize: pixelAngularSize * this.MIN_STAR_DISK_SIZE_PIXELS });
+    this.points = new Points(this.geometry, this.material);
+    this.points.frustumCulled = false;
   }
 
-  rebuild(camPos: Vector3, fov: number, windowHeight: number) {
-    this.updateMinDiskAngularSize(fov, windowHeight);
-    const cameraPositionLy = mul(camPos, 1 / this.LY_TO_KM);
+  get object(): Object3D {
+    return this.points;
+  }
 
-    if (this.lastStarCameraPositionLy && cameraPositionLy.distanceTo(this.lastStarCameraPositionLy) < this.STAR_MAP_REBUILD_DISTANCE) {
-      return;
-    }
-    this.lastStarCameraPositionLy = cameraPositionLy;
+  update(cameraPositionKm: Vector3, fovDegrees: number, windowHeight: number) {
+    const uniforms = this.material.uniforms;
+    uniforms.uCameraPositionLy.value.copy(cameraPositionKm).divideScalar(LY_TO_KM);
 
-    this.clear();
+    const fovRadians = (fovDegrees * Math.PI) / 180;
+    uniforms.uPixelAngularSize.value = (2 * Math.tan(fovRadians / 2)) / windowHeight;
+  }
 
-    for (const star of this.parsedStars) {
-      const directionToStar = sub(star.position, cameraPositionLy);
-      const distanceLy = directionToStar.length();
+  setShaderParam(field: string, value: number) {
+    this.material.uniforms[field].value = value;
+  }
 
-      // normalize
-      directionToStar.divideScalar(distanceLy);
-
-      const brightness = star.intensity / (distanceLy * distanceLy);
-      this.writeStarPixel(directionToStar, star.color, brightness);
-    }
-
-    this.texture.needsUpdate = true;
+  dispose() {
+    this.geometry.dispose();
+    this.material.dispose();
   }
 }

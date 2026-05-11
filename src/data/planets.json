@@ -1,0 +1,21 @@
+[
+  {
+    "starIndex": 0,
+    "position": [0, -150000000, 0],
+    "uPlanetRadius": 6371,
+    "uPlanetAxis": [0, 0.4, 0.92],
+    "rotationSpeed": 5,
+    "uPlanetAngle": 0,
+    "useAtmosphere": false,
+    "uAtmosphereHeight": 100,
+    "atmosphereRayleighScaleHeight": 8,
+    "uMieScaleHeight": 1.5,
+    "uMiePreferredScatteringDirection": 0.96,
+    "uMieBetaAbsorption": 0,
+    "atmSteps": 64,
+    "secondAtmSteps": 4,
+    "uUseMie": true,
+    "useTransmittance": true,
+    "textureUrl": "earth.jpg"
+  }
+]
