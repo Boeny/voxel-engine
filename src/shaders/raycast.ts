@@ -180,27 +180,6 @@ vec3 getStars(vec3 rayDirection) {
     return texture2D(uStarMap, equirectUV).rgb * uStarBrightness;
 }
 
-// ~10^-4 of disk lightning
-// Falling as 1/(1+d²), where d — distance from its edge in sun radiuses
-vec3 getSunCorona(vec3 rayDir) {
-    float cosTheta = dot(rayDir, uSunDirFromCamera);
-    float a = acos(clamp(cosTheta, -1.0, 1.0));
-    float r = uSunAngularRadius;
-    // distance from its edge in sun radiuses
-    float d = max(0.0, a - r) / r;
-    // Только за пределами диска, спад 1/(1+d²)
-    float outside = smoothstep(r * 0.98, r * 1.02, a);
-    float corona = outside / (1.0 + d * d);
-
-    // Cut corona at 50 solar radii (physically negligible beyond this)
-    // Without this, tiny values (10^-7) get amplified 1000x by auto-exposure → visible color bands
-    corona *= smoothstep(coronaRadius, 0.0, d);
-
-    // ~0.1% of disk brightness (150 * intensity * 0.001 = 1.35 HDR at intensity=9)
-    // Much brighter than stars (0.05-0.1), visible during eclipse
-    return vec3(1.0, 0.95, 0.85) * corona * uSunIntensity * coronaIntensity;
-}
-
 // ── Main ──────────────────────────────────────────────────────────
 
 void main() {

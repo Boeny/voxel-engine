@@ -33,8 +33,6 @@ function StarParams({ selectedObject }: { selectedObject: Star }) {
   useControls('Selected Object Settings', () => {
     return getControlParams(selectedObject, {
       intensity: [0.1, 100, 0.01],
-      coronaRadius: [0.001, 50, 0.1],
-      coronaIntensity: [0.001, 0.1, 0.0001],
     });
   });
 
