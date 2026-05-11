@@ -1,7 +1,7 @@
 [
   {
     "name": "Sun",
-    "right_ascension": 0,
+    "ascension": 0,
     "declination": 0,
     "distance_ly": 0,
     "spectral_type": "G2V",
@@ -99,7 +99,7 @@
     "declination": 7.014723134801666,
     "distance_ly": 7.855784455675892,
     "temperature": 0.0,
-    "spectral_type": "dM6",
+    "spectral_type": "M6",
     "object_type": "PM*",
     "radius": 0.0,
     "diameter": 0.0,
@@ -254,7 +254,7 @@
     "declination": 0.8045556493308333,
     "distance_ly": 11.007430217710802,
     "temperature": 3093.39990234375,
-    "spectral_type": "dM4",
+    "spectral_type": "M4",
     "object_type": "PM*",
     "radius": 149853.77683192492,
     "diameter": 0.0,

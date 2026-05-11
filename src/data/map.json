@@ -1,18 +1,12 @@
 {
-  "star": {
-    "position": [0, 0, 0],
-    "radius": 695700,
-    "intensity": 3,
-    "coronaIntensity": 0.001,
-    "coronaRadius": 20
-  },
+  "starIndex": 0,
   "planet": {
     "position": [0, -150000000, 0],
     "radius": 6371,
     "rotation": [0, 0.4, 0.92],
     "rotationSpeed": 5,
     "angle": 0,
-    "useAtmosphere": true,
+    "useAtmosphere": false,
     "atmosphereHeight": 100,
     "atmosphereRayleighScaleHeight": 8,
     "atmosphereMieScaleHeight": 1.5,

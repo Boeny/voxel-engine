@@ -4,6 +4,7 @@ import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { EffectComposer, Bloom } from '@react-three/postprocessing';
 import { useControls } from 'leva';
 import { BloomEffect } from 'postprocessing';
+import { PerspectiveCamera } from 'three';
 
 import { AutoExposureEffect } from '@/shaders/autoExposure';
 import { HUD } from '@/ui/hud';
@@ -30,10 +31,10 @@ const SceneSetup = memo(() => {
 
   useControls('Stars', {
     brightness: {
-      value: 0.1,
+      value: 500,
       min: 0.001,
-      max: 10,
-      step: 0.001,
+      max: 500,
+      step: 1,
       onChange: (v: number) => gameLogic.current?.setShaderParams({ uStarBrightness: v }),
       transient: true,
     },
@@ -46,7 +47,7 @@ const SceneSetup = memo(() => {
 
     camera.rotation.order = 'YXZ'; // Allows proper FPS-like rotation without gimbal lock at poles
 
-    gameLogic.current = new GameLogic(camera, scene, (objects) => state.setObjects(objects));
+    gameLogic.current = new GameLogic(camera as PerspectiveCamera, scene, (objects) => state.setObjects(objects));
     controller.current = isEditor ? new EditorController(camera, getState) : new PlayerController(camera, getState);
 
     state.select(gameLogic.current.planet);
@@ -68,10 +69,17 @@ const SceneSetup = memo(() => {
   useFrame((_, delta) => {
     const state = getState();
 
-    if (state.gameState === 'playing') {
-      gameLogic.current?.update(delta);
-      controller.current?.update(delta, state.selectedObject);
-      controller.current?.updateHUD(state.selectedObject);
+    if (state.gameState === 'playing' && gameLogic.current && controller.current) {
+      controller.current.velocity = gameLogic.current.velocity;
+      controller.current.update(delta, state.selectedObject);
+
+      gameLogic.current.velocity = controller.current.velocity;
+      gameLogic.current.update(delta, state.selectedObject);
+
+      camera.position.add(gameLogic.current.velocity);
+
+      controller.current.updateHUD(delta, state.selectedObject);
+      gameLogic.current.updateHUD(delta, state.selectedObject);
 
       if (state.controlType === 'editor') {
         autoExposureEffect.updateHUD();
@@ -82,6 +90,7 @@ const SceneSetup = memo(() => {
   return null;
 });
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 const PostProcessing = memo(() => {
   const bloomRef = useRef<BloomEffect>(null);
 
@@ -105,7 +114,7 @@ const PostProcessing = memo(() => {
       transient: true,
     },
     smoothing: {
-      value: 1,
+      value: 0,
       min: 0,
       max: 1,
       step: 0.01,
@@ -151,7 +160,7 @@ export const Engine = () => {
         gl={{ logarithmicDepthBuffer: true, antialias: true, toneMapping: 0 }}
       >
         <SceneSetup />
-        <PostProcessing />
+        {/* <PostProcessing /> */}
       </Canvas>
     </div>
   );

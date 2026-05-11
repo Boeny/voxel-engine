@@ -15,7 +15,6 @@ export class PlayerController extends Controller<AppState> {
 
   // state
   velocity = new Vector3();
-  isGrounded = true;
   private pitch = 0;
   private lastForward = new Vector3(0, 0, 1); // forward on tangent plane, persists between frames
 
@@ -23,7 +22,6 @@ export class PlayerController extends Controller<AppState> {
   speed = 5; // m/s
   gravity = 10; // m/s2
   jumpForce = 0.005;
-  playerHeight = 2; // m
 
   constructor(camera: Camera, getState: () => AppState) {
     super(camera, getState);
@@ -31,7 +29,7 @@ export class PlayerController extends Controller<AppState> {
     // Spawn on planet surface along +Y (dayside when star is above)
     const planetPos = arrayToVector(mapData.planet.position);
     const spawnDir = new Vector3(0, 1, 0);
-    camera.position.copy(planetPos).addScaledVector(spawnDir, mapData.planet.radius + this.playerHeight / 1000);
+    camera.position.copy(planetPos).addScaledVector(spawnDir, mapData.planet.radius + 2 / 1000); // TODO: get player position from the map
 
     // Orient camera: stand on surface, look along Z
     camera.up.copy(spawnDir);
@@ -82,7 +80,6 @@ export class PlayerController extends Controller<AppState> {
 
   update(delta: number, selectedObject: SelectableObject | null) {
     if (!selectedObject) {
-      this.isGrounded = false;
       this.camera.position.add(this.velocity);
 
       return;
@@ -153,32 +150,14 @@ export class PlayerController extends Controller<AppState> {
     const gravityVector = mul(up, -(this.gravity / 1000) * delta);
     this.velocity.add(gravityVector);
 
-    // Apply velocity
-    this.camera.position.add(this.velocity);
-
-    // Recompute normal after position change
-    const vectorFromObject = sub(this.camera.position, selectedObject.position);
-    const newNormal = norm(vectorFromObject);
-
-    // Ground collision
-    const distanceToCameraOnGround = selectedObject.radius + this.playerHeight / 1000;
-    this.isGrounded = vectorFromObject.length() <= distanceToCameraOnGround;
-    if (this.isGrounded) {
-      this.camera.position.copy(add(selectedObject.position, mul(newNormal, distanceToCameraOnGround)));
-      const verticalVelocity = mul(newNormal, this.velocity.dot(newNormal));
-      this.velocity.sub(verticalVelocity);
-    }
-
     // Jump
-    if (keys['Space'] && this.isGrounded) {
-      this.isGrounded = false;
-      this.velocity.add(mul(newNormal, this.jumpForce));
-    }
+    // if (keys['Space'] && this.isGrounded) {
+    //   this.isGrounded = false;
+    //   this.velocity.add(mul(newNormal, this.jumpForce));
+    // }
   }
 
-  updateHUD(selectedObject: SelectableObject | null) {
-    setDOMContent('hud-altitude', `Altitude: ${getDistanceText(this.getDistanceToObject(selectedObject) * 1000 - this.playerHeight)}`);
+  updateHUD(_delta: number, _selectedObject: SelectableObject | null) {
     setDOMContent('hud-speed', `Speed: ${getDistanceText(this.velocity.length() * 1000)}/s`);
-    setDOMContent('hud-grounded', `Is Grounded: ${this.isGrounded}`);
   }
 }

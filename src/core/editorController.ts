@@ -6,12 +6,11 @@ import { AppState } from '@/store';
 
 import { Controller } from './controller';
 import { SelectableObject } from './selectableObject';
-import { add, arrayToVector, getDistanceText, mul, norm, setDOMContent, sub } from './utils';
+import { arrayToVector, norm, setDOMContent, sub } from './utils';
 
 export class EditorController extends Controller<AppState> {
   // config
   sensitivity = 0.003;
-  playerHeight = 2; // m
 
   // state
   mouseDelta = { x: 0, y: 0 };
@@ -19,7 +18,6 @@ export class EditorController extends Controller<AppState> {
   isLeftDragging = false;
   wheelDelta = 0;
   previousMousePosition = { x: 0, y: 0 };
-  isGrounded = true;
 
   constructor(camera: Camera, getState: () => AppState) {
     super(camera, getState);
@@ -105,7 +103,6 @@ export class EditorController extends Controller<AppState> {
 
     let vectorFromObject = sub(this.camera.position, selectedObject.position);
     let distanceToObject = vectorFromObject.length();
-    let normal = norm(vectorFromObject);
 
     // Effective distance used for scaling
     // If focus is planet center, scale with altitude
@@ -157,7 +154,6 @@ export class EditorController extends Controller<AppState> {
       this.camera.position.add(moveDir);
       vectorFromObject = sub(this.camera.position, selectedObject.position);
       distanceToObject = vectorFromObject.length();
-      normal = norm(vectorFromObject);
     }
 
     // Left Drag -> Look around freely
@@ -202,27 +198,17 @@ export class EditorController extends Controller<AppState> {
         newDist = 0.1;
       }
 
-      const newVector = vectorFromObject.clone().normalize().multiplyScalar(newDist);
+      const newVector = norm(vectorFromObject).multiplyScalar(newDist);
       // Only apply if it doesn't push us into the planet (checked below)
       this.camera.position.copy(selectedObject.position).add(newVector);
-      vectorFromObject = sub(this.camera.position, selectedObject.position);
-      distanceToObject = vectorFromObject.length();
-      normal = norm(vectorFromObject);
 
       this.wheelDelta = 0;
-    }
 
-    const distanceToCameraOnGround = selectedObject.radius + this.playerHeight / 1000;
-    this.isGrounded = distanceToObject <= distanceToCameraOnGround;
-    if (this.isGrounded) {
-      this.camera.position.copy(add(selectedObject.position, mul(normal, distanceToCameraOnGround)));
+      return;
     }
   }
 
-  updateHUD(selectedObject: SelectableObject | null) {
-    setDOMContent('hud-altitude', `Altitude: ${getDistanceText(this.getDistanceToObject(selectedObject) * 1000)}`);
-    setDOMContent('hud-grounded', `Is Grounded: ${this.isGrounded}`);
-
+  updateHUD(_delta: number, _selectedObject: SelectableObject | null) {
     const { x, y, z } = this.camera.position;
     setDOMContent('hud-position', `Position: (${x.toFixed(2)}, ${y.toFixed(2)}, ${z.toFixed(2)})`);
   }

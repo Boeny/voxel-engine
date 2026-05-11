@@ -22,7 +22,9 @@ uniform float uSunAngularRadius;
 uniform float coronaIntensity;
 uniform float coronaRadius;
 
+uniform sampler2D uStarMap;
 uniform float uStarBrightness;
+uniform float uMinDiskAngularSize;
 
 uniform vec3  uPlanetCenter;
 uniform float uPlanetRadius;
@@ -159,36 +161,23 @@ void sampleAtmosphere(
     }
 }
 
-// ── Stars ─────────────────────────────────────────────────────────
-
-float getStars(vec3 rd) {
-    vec3 a = abs(rd);
-    vec2 uv; float faceId;
-    if      (a.x >= a.y && a.x >= a.z) { uv = rd.yz / a.x; faceId = rd.x > 0.0 ? 1.0 : 2.0; }
-    else if (a.y >= a.x && a.y >= a.z) { uv = rd.xz / a.y; faceId = rd.y > 0.0 ? 3.0 : 4.0; }
-    else                                { uv = rd.xy / a.z; faceId = rd.z > 0.0 ? 5.0 : 6.0; }
-
-    vec2 grid = uv * 75.0;
-    vec2 cellUv = fract(grid);
-    float seed = dot(vec3(floor(grid), faceId), vec3(12.9898, 78.233, 45.164));
-    float val = fract(sin(seed) * 43758.5453);
-    if (val > 0.978) {
-        vec2 sp = vec2(fract(sin(seed * 1.1) * 43758.5), fract(sin(seed * 1.2) * 43758.5));
-        return smoothstep(0.12, 0.0, length(cellUv - sp)) * (val - 0.978) * uStarBrightness;
-    }
-    return 0.0;
-}
-
 // ── Sun disk ──────────────────────────────────────────────────────
 // Physical disk with limb darkening
-vec3 getSunDisk(vec3 rayDir) {
-    float cosTheta = dot(rayDir, uSunDirFromCamera);
-    float a = acos(clamp(cosTheta, -1.0, 1.0));
-    float r = uSunAngularRadius;
-    float mu = max(0.0, 1.0 - a / r);
+vec3 getStarDisk(vec3 rayDirection, vec3 starDirection, float angularRadius, float intensity, vec3 color) {
+    float angle = acos(clamp(dot(rayDirection, starDirection), -1.0, 1.0));
+    float mu = max(0.0, 1.0 - angle / angularRadius);
     float limb = 0.4 + 0.6 * sqrt(mu);
-    float disk = smoothstep(r * 1.02, r * 0.98, a);
-    return vec3(1.0, 0.97, 0.88) * disk * limb * 150.0 * uSunIntensity;
+    float disk = smoothstep(angularRadius * 1.02, angularRadius * 0.98, angle);
+    return color * disk * limb * intensity;
+}
+
+// ── Stars ─────────────────────────────────────────────────────────
+
+vec3 getStars(vec3 rayDirection) {
+    float polarAngle = acos(clamp(rayDirection.y, -1.0, 1.0));
+    float azimuth = atan(rayDirection.z, rayDirection.x);
+    vec2 equirectUV = vec2(0.5 + azimuth / (2.0 * PI), polarAngle / PI);
+    return texture2D(uStarMap, equirectUV).rgb * uStarBrightness;
 }
 
 // ~10^-4 of disk lightning
@@ -205,7 +194,7 @@ vec3 getSunCorona(vec3 rayDir) {
 
     // Cut corona at 50 solar radii (physically negligible beyond this)
     // Without this, tiny values (10^-7) get amplified 1000x by auto-exposure → visible color bands
-    corona *= smoothstep(coronaRadius, 3.0, d);
+    corona *= smoothstep(coronaRadius, 0.0, d);
 
     // ~0.1% of disk brightness (150 * intensity * 0.001 = 1.35 HDR at intensity=9)
     // Much brighter than stars (0.05-0.1), visible during eclipse
@@ -295,11 +284,14 @@ void main() {
 
         finalColor += viewTr * (groundColor * sunTr * max(sunDotN, 0.0) * uSunIntensity);
     } else {
-        finalColor += getSunDisk(rayDir) * viewTr + getSunCorona(rayDir) * viewTr;
+        // Render Sun as 3D disk only when close enough; otherwise it's on the star map
+        if (uSunAngularRadius >= uMinDiskAngularSize) {
+            //finalColor += getStarDisk(rayDir, uSunDirFromCamera, uSunAngularRadius, uSunIntensity, vec3(1.0, 0.97, 0.88)) * viewTr;
+            //finalColor += getSunCorona(rayDir) * viewTr;
+        }
 
         if (uUseStars) {
-            float stars = getStars(rayDir);
-            finalColor += vec3(stars);
+            finalColor += getStars(rayDir);
         }
     }
     if (useAtmosphere) {
