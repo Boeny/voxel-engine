@@ -170,3 +170,13 @@ export function rotateXY(v: Vector3, angleRad: number) {
 
   return new Vector3(x, y, v.z);
 }
+
+export function clampVectorMax(v: Vector3, max: number): Vector3 {
+  const length = v.length();
+
+  if (length <= max) {
+    return v;
+  }
+
+  return norm(v).multiplyScalar(max);
+}

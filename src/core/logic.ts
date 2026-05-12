@@ -7,14 +7,14 @@ import { LY_TO_KM } from './const';
 import { Planet } from './planet';
 import { PlanetField } from './planetField';
 import { StarField } from './starField';
-import { getDistanceText, mul, setDOMContent } from './utils';
+import { add, getDistanceText, mul, norm, setDOMContent, sub } from './utils';
 
 const playerHeight = 2 / 1000; // km
 
 export class GameLogic {
   public planets: Planet[] = [];
   private isGrounded = true;
-  velocity = new Vector3();
+
   starField: StarField;
   planetField: PlanetField;
 
@@ -35,7 +35,9 @@ export class GameLogic {
     this.scene.add(this.planetField.object);
   }
 
-  update(delta: number) {
+  update(delta: number, selectedObject: SelectableObject | null, velocity: Vector3) {
+    let newVelocity = velocity;
+
     // Camera drag from active planet's rotation (atmosphere + ground friction)
     //const altitude = Math.max(0, this.camera.position.distanceTo(activePlanet.position) - activePlanet.uPlanetRadius);
 
@@ -57,19 +59,21 @@ export class GameLogic {
     //   this.camera.rotateOnWorldAxis(activePlanet.uPlanetAxis, cameraAngleDelta);
     // }
 
-    // if (selectedObject) {
-    //   const distanceToCameraOnGround = selectedObject.uPlanetRadius + playerHeight / 1000;
-    //   const vectorFromObject = sub(this.camera.position, selectedObject.position);
-    //   const distanceToObject = vectorFromObject.length();
-    //   const normal = norm(vectorFromObject);
+    if (selectedObject) {
+      const distanceToCameraOnGround = selectedObject.radius + playerHeight;
+      const vectorFromObject = sub(this.camera.position, selectedObject.position);
+      const distanceToObject = vectorFromObject.length();
+      const normal = norm(vectorFromObject);
 
-    //   this.isGrounded = distanceToObject <= distanceToCameraOnGround;
-    //   if (this.isGrounded) {
-    //     this.camera.position.copy(add(selectedObject.position, mul(normal, distanceToCameraOnGround)));
-    //   }
-    // }
+      this.isGrounded = distanceToObject <= distanceToCameraOnGround;
+      if (this.isGrounded) {
+        const targetVectorFromObject = mul(normal, distanceToCameraOnGround);
+        const targetPosition = add(selectedObject.position, targetVectorFromObject);
+        newVelocity = sub(targetPosition, this.camera.position);
+      }
+    }
 
-    this.camera.updateMatrixWorld();
+    //this.camera.updateMatrixWorld();
     this.starField.update(this.camera.position, this.camera.fov, window.innerHeight);
 
     for (const planet of this.planets) {
@@ -78,6 +82,8 @@ export class GameLogic {
 
     // PlanetField re-reads planet.positionLy each frame so orbital motion shows in the LY-cloud
     this.planetField.update(this.camera.position);
+
+    return newVelocity;
   }
 
   updateHUD(delta: number, selectedObject: SelectableObject | null) {

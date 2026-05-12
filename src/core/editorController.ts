@@ -10,7 +10,6 @@ import { add, getDistanceText, norm, setDOMContent, sub } from './utils';
 export class EditorController extends Controller {
   // config
   sensitivity = 0.005;
-  maxSpeed = 1e15;
 
   // state
   mouseDelta = { x: 0, y: 0 };
@@ -86,9 +85,9 @@ export class EditorController extends Controller {
     };
   }
 
-  update(delta: number, selectedObject: SelectableObject | null) {
+  update(delta: number, selectedObject: SelectableObject | null, velocity: Vector3): Vector3 {
     if (!selectedObject) {
-      return;
+      return velocity;
     }
 
     let vectorFromObject = sub(this.camera.position, selectedObject.position);
@@ -100,12 +99,7 @@ export class EditorController extends Controller {
 
     // Logarithmic-like scale for speed.
     // In close range it's small, in far range it's large.
-    let speedScale = Math.max(5.0, effectiveDist * 2.0);
-
-    if (this.maxSpeed) {
-      speedScale = Math.min(this.maxSpeed, speedScale);
-    }
-
+    const speedScale = Math.max(5.0, effectiveDist * 2.0);
     const moveSpeed = speedScale * delta;
 
     // Local Movement (WASD)
@@ -145,11 +139,11 @@ export class EditorController extends Controller {
     }
 
     if (moveDir.lengthSq() > 0) {
-      this.setVelocity(norm(moveDir).multiplyScalar(moveSpeed));
+      velocity = norm(moveDir).multiplyScalar(moveSpeed);
       vectorFromObject = sub(this.camera.position, selectedObject.position);
       distanceToObject = vectorFromObject.length();
     } else {
-      this.setVelocity();
+      velocity = new Vector3();
     }
 
     // Left Drag -> Look around freely
@@ -161,7 +155,7 @@ export class EditorController extends Controller {
       this.mouseDelta.x = 0;
       this.mouseDelta.y = 0;
 
-      return;
+      return velocity;
     }
 
     // Right Drag -> Orbit around focus point
@@ -174,7 +168,7 @@ export class EditorController extends Controller {
       const orbitRight = new Vector3(1, 0, 0).applyQuaternion(this.camera.quaternion);
 
       const newOffset = vectorFromObject.clone().applyAxisAngle(orbitUp, angleH).applyAxisAngle(orbitRight, angleV);
-      this.setNewPosition(add(selectedObject.position, newOffset));
+      velocity.add(this.applyNewPosition(add(selectedObject.position, newOffset)));
 
       this.camera.up.copy(orbitUp);
       this.camera.lookAt(selectedObject.position);
@@ -182,7 +176,7 @@ export class EditorController extends Controller {
       this.mouseDelta.x = 0;
       this.mouseDelta.y = 0;
 
-      return;
+      return velocity;
     }
 
     // Zooming to focus point (Mouse Wheel)
@@ -196,24 +190,21 @@ export class EditorController extends Controller {
 
       const newOffset = norm(vectorFromObject).multiplyScalar(newDist);
       // Only apply if it doesn't push us into the planet (checked below)
-      this.setNewPosition(add(selectedObject.position, newOffset));
+      velocity.add(this.applyNewPosition(add(selectedObject.position, newOffset)));
 
       this.wheelDelta = 0;
-
-      return;
     }
+
+    return velocity;
   }
 
-  setVelocity(v?: Vector3) {
-    this.velocity.copy(v || new Vector3());
-  }
-  setNewPosition(pos: Vector3) {
-    this.setVelocity(sub(pos, this.camera.position));
+  applyNewPosition(pos: Vector3): Vector3 {
+    return sub(pos, this.camera.position);
   }
 
-  updateHUD(_delta: number, _selectedObject: SelectableObject | null) {
+  updateHUD(delta: number, selectedObject: SelectableObject | null, velocity: Vector3) {
     const { x, y, z } = this.camera.position;
     setDOMContent('hud-position', `Position: (${x.toFixed(2)}, ${y.toFixed(2)}, ${z.toFixed(2)})`);
-    setDOMContent('hud-speed', `Speed: ${getDistanceText(this.velocity.length())}/s`);
+    setDOMContent('hud-speed', `Speed: ${getDistanceText(velocity.length())}/s`);
   }
 }

@@ -14,7 +14,7 @@ import { AppState, useStore } from '../store';
 import { EditorController } from './editorController';
 import { GameLogic } from './logic';
 import { PlayerController } from './playerController';
-import { add } from './utils';
+import { add, clampVectorMax } from './utils';
 //import { getControlParams } from './utils';
 
 const autoExposureEffect = new AutoExposureEffect();
@@ -31,6 +31,7 @@ const initialParams = {
   uMinBrightness: 0,
   uMaxBrightness: 10,
 };
+const MAX_SPEED = { value: 1e13 };
 
 const SceneSetup = memo(() => {
   const { camera, scene, gl } = useThree();
@@ -38,6 +39,7 @@ const SceneSetup = memo(() => {
 
   const gameLogic = useRef<GameLogic | null>(null);
   const controller = useRef<PlayerController | EditorController | null>(null);
+  const velocity = useRef<Vector3>(new Vector3());
 
   useControls('Stars', {
     brightness: {
@@ -89,6 +91,18 @@ const SceneSetup = memo(() => {
       transient: true,
     },
   });
+  useControls('Movement', {
+    maxSpeed: {
+      value: MAX_SPEED.value,
+      min: 0,
+      max: 1e13,
+      step: 1e3,
+      onChange: (v: number) => {
+        MAX_SPEED.value = v;
+      },
+      transient: true,
+    },
+  });
 
   // Initialize Game Logic and Controller only once per map session
   useEffect(() => {
@@ -127,15 +141,15 @@ const SceneSetup = memo(() => {
     const state = getState();
 
     if (state.gameState === 'playing' && gameLogic.current && controller.current) {
-      controller.current.velocity = gameLogic.current.velocity;
-      controller.current.update(delta, state.selectedObject);
+      velocity.current = controller.current.update(delta, state.selectedObject, velocity.current);
+      velocity.current = gameLogic.current.update(delta, state.selectedObject, velocity.current);
 
-      gameLogic.current.velocity = controller.current.velocity;
-      gameLogic.current.update(delta);
+      if (MAX_SPEED.value > 0) {
+        velocity.current = clampVectorMax(velocity.current, MAX_SPEED.value);
+      }
+      camera.position.add(velocity.current);
 
-      camera.position.add(gameLogic.current.velocity);
-
-      controller.current.updateHUD(delta, state.selectedObject);
+      controller.current.updateHUD(delta, state.selectedObject, velocity.current);
       gameLogic.current.updateHUD(delta, state.selectedObject);
 
       if (state.controlType === 'editor') {
@@ -226,7 +240,7 @@ export const Engine = () => {
       <HUD />
 
       <Canvas
-        camera={{ position: [0, 2, 0], fov: 50, near: 0.1 }}
+        camera={{ position: [0, 2, 0], fov: 50, near: 0.1, far: 2000 }}
         gl={{ logarithmicDepthBuffer: true, antialias: true, toneMapping: 0 }}
       >
         <SceneSetup />

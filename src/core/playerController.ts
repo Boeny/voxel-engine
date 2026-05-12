@@ -6,7 +6,7 @@ import { SelectableObject } from '../types';
 
 import { Controller } from './controller';
 import { PointerLock } from './pointerLock';
-import { getDistanceText, mul, norm, setDOMContent, sub } from './utils';
+import { add, getDistanceText, mul, norm, setDOMContent, sub } from './utils';
 
 export class PlayerController extends Controller {
   // components
@@ -54,11 +54,9 @@ export class PlayerController extends Controller {
     return 0;
   }
 
-  update(delta: number, selectedObject: SelectableObject | null) {
+  update(delta: number, selectedObject: SelectableObject | null, velocity: Vector3): Vector3 {
     if (!selectedObject) {
-      this.camera.position.add(this.velocity);
-
-      return;
+      return velocity;
     }
 
     // Local surface frame
@@ -111,29 +109,31 @@ export class PlayerController extends Controller {
     }
 
     // Friction
-    const tangentVel = this.velocity.clone().addScaledVector(up, -this.velocity.dot(up));
-    const radialVel = up.clone().multiplyScalar(this.velocity.dot(up));
+    const tangentVel = add(velocity, mul(up, -velocity.dot(up)));
+    const radialVel = mul(up, velocity.dot(up));
     tangentVel.multiplyScalar(Math.pow(0.5, delta * 60));
-    this.velocity.copy(tangentVel).add(radialVel);
+    velocity = add(tangentVel, radialVel);
 
     // Acceleration
     if (moveDir.lengthSq() > 0) {
       moveDir.normalize().multiplyScalar((this.speed / 1000) * delta);
-      this.velocity.add(moveDir);
+      velocity.add(moveDir);
     }
 
     // Gravity
     const gravityVector = mul(up, -(this.gravity / 1000) * delta);
-    this.velocity.add(gravityVector);
+    velocity.add(gravityVector);
 
     // Jump
     // if (keys['Space'] && this.isGrounded) {
     //   this.isGrounded = false;
-    //   this.velocity.add(mul(newNormal, this.jumpForce));
+    //   velocity.add(mul(newNormal, this.jumpForce));
     // }
+
+    return velocity;
   }
 
-  updateHUD(_delta: number, _selectedObject: SelectableObject | null) {
-    setDOMContent('hud-speed', `Speed: ${getDistanceText(this.velocity.length())}/s`);
+  updateHUD(delta: number, selectedObject: SelectableObject | null, velocity: Vector3) {
+    setDOMContent('hud-speed', `Speed: ${getDistanceText(velocity.length())}/s`);
   }
 }
