@@ -16,7 +16,12 @@ export interface Star {
 
 const SUN_TEMPERATURE = 5778;
 
-function sphericalToCartesian(rightAscension: number, declination: number, distance: number): Vector3 {
+// Catalog units: rightAscension in hours [0, 24), declination in degrees [-90, 90].
+// Convert to radians before trig.
+function sphericalToCartesian(rightAscensionHours: number, declinationDegrees: number, distance: number): Vector3 {
+  const rightAscension = (rightAscensionHours * Math.PI) / 12; // 24h = 2π
+  const declination = (declinationDegrees * Math.PI) / 180;
+
   const cosDeclination = Math.cos(declination);
 
   return new Vector3(

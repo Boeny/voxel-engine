@@ -134,6 +134,6 @@ export class PlayerController extends Controller {
   }
 
   updateHUD(_delta: number, _selectedObject: SelectableObject | null) {
-    setDOMContent('hud-speed', `Speed: ${getDistanceText(this.velocity.length() * 1000)}/s`);
+    setDOMContent('hud-speed', `Speed: ${getDistanceText(this.velocity.length())}/s`);
   }
 }

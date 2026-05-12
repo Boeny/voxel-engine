@@ -3,10 +3,11 @@ import { PerspectiveCamera, Scene, Vector3 } from 'three';
 import planetsData from '@/data/planets.json';
 import { SelectableObject } from '@/types';
 
+import { LY_TO_KM } from './const';
 import { Planet } from './planet';
 import { PlanetField } from './planetField';
 import { StarField } from './starField';
-import { getDistanceText, setDOMContent } from './utils';
+import { getDistanceText, mul, setDOMContent } from './utils';
 
 const playerHeight = 2 / 1000; // km
 
@@ -90,7 +91,10 @@ export class GameLogic {
       return 0;
     }
 
-    return this.camera.position.distanceTo(object.position) - object.radius;
+    // Stars store position in LY; planets store position in km. Camera is in km.
+    const positionKm = object.type === 'star' ? mul(object.position, LY_TO_KM) : object.position;
+
+    return this.camera.position.distanceTo(positionKm) - object.radius;
   }
 
   dispose() {

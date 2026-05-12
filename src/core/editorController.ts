@@ -214,6 +214,6 @@ export class EditorController extends Controller {
   updateHUD(_delta: number, _selectedObject: SelectableObject | null) {
     const { x, y, z } = this.camera.position;
     setDOMContent('hud-position', `Position: (${x.toFixed(2)}, ${y.toFixed(2)}, ${z.toFixed(2)})`);
-    setDOMContent('hud-speed', `Speed: ${getDistanceText(this.velocity.length() * 1000)}/s`);
+    setDOMContent('hud-speed', `Speed: ${getDistanceText(this.velocity.length())}/s`);
   }
 }

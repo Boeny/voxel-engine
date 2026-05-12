@@ -13,7 +13,8 @@ function getDistanceForUnits(value: number, units: string): string | undefined {
   return undefined;
 }
 
-export function getDistanceText(meters: number): string {
+export function getDistanceText(km: number): string {
+  const meters = km * 1000;
   const sm = meters * 100;
 
   if (meters < 1) {
@@ -27,7 +28,6 @@ export function getDistanceText(meters: number): string {
   }
   // meters >= 1000
 
-  const km = meters / 1000;
   distance = getDistanceForUnits(km, ' km');
   if (distance) {
     return distance;
