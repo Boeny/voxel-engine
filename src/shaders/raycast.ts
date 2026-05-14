@@ -1,5 +1,5 @@
 export const raycastVert = `
-uniform vec3 position;
+//uniform vec3 position;
 uniform float radius;
 uniform float uAtmosphereHeight;
 

@@ -8,6 +8,7 @@ import { pow4 } from './utils';
 import { temperatureToLinearRGB } from './utils/starUtils';
 
 export interface Star {
+  name: string;
   position: Vector3; // in light years
   color: Vector3;
   luminosity: number; // (T / T_sun)^4
@@ -37,6 +38,7 @@ function parseStarCatalog(stars: typeof starsData): Star[] {
     const temperatureRatio = temperature / SUN_TEMPERATURE;
 
     return {
+      name: star.name,
       position: sphericalToCartesian(star.ascension, star.declination, star.distance_ly),
       color: temperatureToLinearRGB(temperature),
       luminosity: pow4(temperatureRatio),
@@ -55,7 +57,6 @@ uniform float uPixelAngularSize;
 uniform float uBrightnessMultiplier;
 uniform float uRadiusMultiplier;
 uniform float uMinRadius;
-uniform float uMaxRadius;
 uniform float uMinBrightness;
 uniform float uMaxBrightness;
 
@@ -81,10 +82,9 @@ void main() {
     float pixelRadius = angularRadius / uPixelAngularSize * uRadiusMultiplier;
 
     // Sprite size: 2 * pixelRadius (diameter), but clamped to user-configurable range
-    gl_PointSize = clamp(2.0 * pixelRadius, uMinRadius, uMaxRadius);
+    gl_PointSize = max(2.0 * pixelRadius, uMinRadius);
 
     // Per-pixel brightness: surface brightness times (star area / rendered disc area), capped at 1
-    // (when clamped to uMaxRadius, can't exceed physical surface brightness)
     float fillRatio = min(1.0, 4.0 * pixelRadius * pixelRadius / (gl_PointSize * gl_PointSize));
     float perPixel = luminosity * fillRatio;
     vColor = starColor * clamp(perPixel * uBrightnessMultiplier, uMinBrightness, uMaxBrightness);
@@ -147,7 +147,6 @@ export class StarField {
         uBrightnessMultiplier: { value: 0 },
         uRadiusMultiplier: { value: 0 },
         uMinRadius: { value: 0 },
-        uMaxRadius: { value: 0 },
         uMinBrightness: { value: 0 },
         uMaxBrightness: { value: 0 },
         LY_TO_KM: { value: LY_TO_KM },

@@ -6,10 +6,15 @@ import { SelectableObject } from '@/types';
 import { LY_TO_KM } from './const';
 import { Planet } from './planet';
 import { PlanetField } from './planetField';
-import { StarField } from './starField';
+import { Star, StarField } from './starField';
+import { StarSphere } from './starSphere';
 import { add, getDistanceText, mul, norm, setDOMContent, sub } from './utils';
 
 const playerHeight = 2 / 1000; // km
+
+// Camera-to-star distance under which we switch to the local-km rendering pass for that star.
+// Beyond this, the star is only visible as a point in the LY cloud.
+const CURRENT_STAR_THRESHOLD_LY = 0.1;
 
 export class GameLogic {
   public planets: Planet[] = [];
@@ -17,6 +22,12 @@ export class GameLogic {
 
   starField: StarField;
   planetField: PlanetField;
+  // Local-km sphere billboard for the "current" star. The current star is the nearest one
+  // within CURRENT_STAR_THRESHOLD_LY; null means no local-km pass (camera in deep space).
+  starSphere: StarSphere;
+  currentStar: Star | null = null;
+  private readonly currentStarPositionKm = new Vector3();
+  private readonly cameraPositionLyTmp = new Vector3();
 
   constructor(
     private camera: PerspectiveCamera,
@@ -33,11 +44,58 @@ export class GameLogic {
 
     this.planetField = new PlanetField(this.planets);
     this.scene.add(this.planetField.object);
+
+    // StarSphere is created upfront; setStar() in updateCurrentStar will retarget it as needed.
+    // Initial star is sun so the material has sane data even before first updateCurrentStar runs.
+    this.starSphere = new StarSphere(this.starField.parsedStars[0]);
+    this.updateCurrentStar();
+  }
+
+  // Find nearest star in LY units within CURRENT_STAR_THRESHOLD_LY. Switch scene membership
+  // of the StarSphere billboard and that star's planet billboards on transition.
+  private updateCurrentStar() {
+    this.cameraPositionLyTmp.copy(this.camera.position).divideScalar(LY_TO_KM);
+
+    let nearest: Star | null = null;
+    let minDistance = CURRENT_STAR_THRESHOLD_LY;
+    for (const star of this.starField.parsedStars) {
+      const distance = this.cameraPositionLyTmp.distanceTo(star.position);
+      if (distance < minDistance) {
+        minDistance = distance;
+        nearest = star;
+      }
+    }
+
+    if (nearest === this.currentStar) {
+      return;
+    }
+
+    // Remove the previous current star's local-km objects from the scene
+    if (this.currentStar) {
+      this.starSphere.removeFromScene(this.scene);
+      for (const planet of this.planets) {
+        if (planet.star === this.currentStar) {
+          planet.removeFromScene(this.scene);
+        }
+      }
+    }
+
+    this.currentStar = nearest;
+
+    // Add the new current star's local-km objects
+    if (nearest) {
+      this.starSphere.setStar(nearest);
+      this.currentStarPositionKm.copy(nearest.position).multiplyScalar(LY_TO_KM);
+      this.starSphere.addToScene(this.scene);
+      for (const planet of this.planets) {
+        if (planet.star === nearest) {
+          planet.addToScene(this.scene);
+        }
+      }
+    }
   }
 
   update(delta: number, selectedObject: SelectableObject | null, velocity: Vector3) {
-    let newVelocity = velocity;
-
     // Camera drag from active planet's rotation (atmosphere + ground friction)
     //const altitude = Math.max(0, this.camera.position.distanceTo(activePlanet.position) - activePlanet.uPlanetRadius);
 
@@ -61,19 +119,22 @@ export class GameLogic {
 
     if (selectedObject) {
       const distanceToCameraOnGround = selectedObject.radius + playerHeight;
-      const vectorFromObject = sub(this.camera.position, selectedObject.position);
-      const distanceToObject = vectorFromObject.length();
+      const nextPosition = add(this.camera.position, velocity);
+
+      const vectorFromObject = sub(nextPosition, selectedObject.position);
+      const distanceToObjectNextFrame = vectorFromObject.length();
       const normal = norm(vectorFromObject);
 
-      this.isGrounded = distanceToObject <= distanceToCameraOnGround;
+      this.isGrounded = distanceToObjectNextFrame <= distanceToCameraOnGround;
       if (this.isGrounded) {
         const targetVectorFromObject = mul(normal, distanceToCameraOnGround);
         const targetPosition = add(selectedObject.position, targetVectorFromObject);
-        newVelocity = sub(targetPosition, this.camera.position);
+        velocity = sub(targetPosition, this.camera.position);
       }
     }
 
     //this.camera.updateMatrixWorld();
+    this.updateCurrentStar();
     this.starField.update(this.camera.position, this.camera.fov, window.innerHeight);
 
     for (const planet of this.planets) {
@@ -83,7 +144,11 @@ export class GameLogic {
     // PlanetField re-reads planet.positionLy each frame so orbital motion shows in the LY-cloud
     this.planetField.update(this.camera.position);
 
-    return newVelocity;
+    if (this.currentStar) {
+      this.starSphere.update(this.camera, this.currentStarPositionKm);
+    }
+
+    return velocity;
   }
 
   updateHUD(delta: number, selectedObject: SelectableObject | null) {
@@ -112,5 +177,9 @@ export class GameLogic {
     this.starField.dispose();
     this.scene.remove(this.planetField.object);
     this.planetField.dispose();
+    if (this.currentStar) {
+      this.starSphere.removeFromScene(this.scene);
+    }
+    this.starSphere.dispose();
   }
 }

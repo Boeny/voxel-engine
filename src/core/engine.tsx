@@ -27,7 +27,6 @@ const initialParams = {
   uBrightnessMultiplier: 1e13,
   uRadiusMultiplier: 1,
   uMinRadius: 4,
-  uMaxRadius: 1000,
   uMinBrightness: 0,
   uMaxBrightness: 10,
 };
@@ -64,14 +63,6 @@ const SceneSetup = memo(() => {
       max: 10,
       step: 0.5,
       onChange: (v: number) => gameLogic.current?.starField.setShaderParam('uMinRadius', v),
-      transient: true,
-    },
-    maxRadius: {
-      value: initialParams.uMaxRadius,
-      min: 1,
-      max: 1000,
-      step: 0.5,
-      onChange: (v: number) => gameLogic.current?.starField.setShaderParam('uMaxRadius', v),
       transient: true,
     },
     minBrightness: {
@@ -149,7 +140,7 @@ const SceneSetup = memo(() => {
       }
       camera.position.add(velocity.current);
 
-      controller.current.updateHUD(delta, state.selectedObject, velocity.current);
+      controller.current.updateHUD(delta, state.selectedObject, velocity.current, gameLogic.current.currentStar);
       gameLogic.current.updateHUD(delta, state.selectedObject);
 
       if (state.controlType === 'editor') {

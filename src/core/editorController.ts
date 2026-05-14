@@ -5,6 +5,7 @@ import { keys, setupKeyboardEvents } from '@/events';
 import { SelectableObject } from '../types';
 
 import { Controller } from './controller';
+import { Star } from './starField';
 import { add, getDistanceText, norm, setDOMContent, sub } from './utils';
 
 export class EditorController extends Controller {
@@ -202,8 +203,10 @@ export class EditorController extends Controller {
     return sub(pos, this.camera.position);
   }
 
-  updateHUD(delta: number, selectedObject: SelectableObject | null, velocity: Vector3) {
+  updateHUD(delta: number, selectedObject: SelectableObject | null, velocity: Vector3, currentStar: Star | null) {
     const { x, y, z } = this.camera.position;
+    selectedObject && setDOMContent('hud-selected-name', `Selected: ${selectedObject.name}`);
+    currentStar && setDOMContent('hud-selected-name', `Nearest star: ${currentStar.name}`);
     setDOMContent('hud-position', `Position: (${x.toFixed(2)}, ${y.toFixed(2)}, ${z.toFixed(2)})`);
     setDOMContent('hud-speed', `Speed: ${getDistanceText(velocity.length())}/s`);
   }
