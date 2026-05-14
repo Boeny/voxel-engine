@@ -5,7 +5,9 @@ import { raycastFrag, raycastVert } from '../shaders/raycast';
 import { LY_TO_KM, ORBIT_TIME_SCALE, SUN_GM } from './const';
 import { shaderUniforms } from './decorators';
 import { Star } from './starField';
-import { angleToRad, arrayToVector, mapObjectValues, mul, norm, rotateXY, sub } from './utils';
+import { mapObjectValues } from './utils';
+import { angleToRad } from './utils/math';
+import { arrayToVector, mul, norm, rotateXY, sub } from './utils/vector';
 
 const PLANET_UNIFORMS = {
   position: new Vector3(),

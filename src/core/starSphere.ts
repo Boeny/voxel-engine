@@ -4,7 +4,8 @@ import { starFrag, starVert } from '../shaders/star';
 
 import { shaderUniforms } from './decorators';
 import { Star } from './starField';
-import { mapObjectValues, sub } from './utils';
+import { mapObjectValues } from './utils';
+import { sub } from './utils/vector';
 
 const STAR_SPHERE_UNIFORMS = {
   center: new Vector3(),

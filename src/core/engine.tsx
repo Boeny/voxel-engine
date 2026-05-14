@@ -14,8 +14,7 @@ import { AppState, useStore } from '../store';
 import { EditorController } from './editorController';
 import { GameLogic } from './logic';
 import { PlayerController } from './playerController';
-import { add, clampVectorMax } from './utils';
-//import { getControlParams } from './utils';
+import { add, clampVectorMax } from './utils/vector';
 
 const autoExposureEffect = new AutoExposureEffect();
 

@@ -4,8 +4,8 @@ import { AdditiveBlending, BufferAttribute, BufferGeometry, Object3D, Points, Sh
 import starsData from '@/data/stars.json';
 
 import { LY_TO_KM } from './const';
-import { pow4 } from './utils';
-import { temperatureToLinearRGB } from './utils/starUtils';
+import { pow4 } from './utils/math';
+import { temperatureToLinearRGB } from './utils/star';
 
 export interface Star {
   name: string;

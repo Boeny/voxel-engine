@@ -6,7 +6,8 @@ import { SelectableObject } from '../types';
 
 import { Controller } from './controller';
 import { PointerLock } from './pointerLock';
-import { add, getDistanceText, mul, norm, setDOMContent, sub } from './utils';
+import { getDistanceText, setDOMContent } from './utils';
+import { add, mul, norm, sub } from './utils/vector';
 
 export class PlayerController extends Controller {
   // components

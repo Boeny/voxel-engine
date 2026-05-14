@@ -8,7 +8,8 @@ import { Planet } from './planet';
 import { PlanetField } from './planetField';
 import { Star, StarField } from './starField';
 import { StarSphere } from './starSphere';
-import { add, getDistanceText, mul, norm, setDOMContent, sub } from './utils';
+import { getDistanceText, setDOMContent } from './utils';
+import { add, mul, norm, sub } from './utils/vector';
 
 const playerHeight = 2 / 1000; // km
 

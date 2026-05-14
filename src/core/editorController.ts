@@ -6,7 +6,8 @@ import { SelectableObject } from '../types';
 
 import { Controller } from './controller';
 import { Star } from './starField';
-import { add, getDistanceText, norm, setDOMContent, sub } from './utils';
+import { getDistanceText, setDOMContent } from './utils';
+import { add, norm, sub } from './utils/vector';
 
 export class EditorController extends Controller {
   // config
