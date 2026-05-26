@@ -1,5 +1,11 @@
 import { Vector3 } from 'three';
 
+import { SUN_TEMPERATURE } from '@/const';
+import starsData from '@/data/stars.json';
+import { pow4 } from '@/utils/math';
+
+import { Star } from './types';
+
 // Tanner Helland's approximation: blackbody temperature → sRGB chromaticity (normalized so brightest channel = 1)
 // Это эмпирический полиномиальный/логарифмический фит Tanner Helland (2012). Алгоритм такой:
 
@@ -66,7 +72,7 @@ import { Vector3 } from 'three';
 
 //   В графике/симуляциях (KSP, Universe Sandbox, NASA visualizations) обычно используют именно Helland —
 // компромисс между точностью и стоимостью.
-export function temperatureToLinearRGB(kelvin: number): Vector3 {
+function temperatureToLinearRGB(kelvin: number): Vector3 {
   const t = kelvin / 100;
 
   let r: number;
@@ -98,4 +104,36 @@ export function temperatureToLinearRGB(kelvin: number): Vector3 {
 
   // sRGB → linear (gamma 2.2 approximation)
   return new Vector3(Math.pow(sR, 2.2), Math.pow(sG, 2.2), Math.pow(sB, 2.2));
+}
+
+// Catalog units: rightAscension in hours [0, 24), declination in degrees [-90, 90].
+// Convert to radians before trig.
+function sphericalToCartesian(rightAscensionHours: number, declinationDegrees: number, distance: number): Vector3 {
+  const rightAscension = (rightAscensionHours * Math.PI) / 12; // 24h = 2π
+  const declination = (declinationDegrees * Math.PI) / 180;
+
+  const cosDeclination = Math.cos(declination);
+
+  return new Vector3(
+    distance * cosDeclination * Math.cos(rightAscension),
+    distance * cosDeclination * Math.sin(rightAscension),
+    distance * Math.sin(declination),
+  );
+}
+
+export function parseStarCatalog(offset = new Vector3()): Star[] {
+  return starsData.map((star, index) => {
+    const temperature = star.temperature || SUN_TEMPERATURE;
+    const temperatureRatio = temperature / SUN_TEMPERATURE;
+
+    return {
+      id: index,
+      type: 'star',
+      name: star.name,
+      position: sphericalToCartesian(star.ascension, star.declination, star.distance_ly).add(offset),
+      color: temperatureToLinearRGB(temperature),
+      luminosity: pow4(temperatureRatio),
+      radius: star.radius,
+    };
+  });
 }

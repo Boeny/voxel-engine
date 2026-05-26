@@ -17,6 +17,7 @@
     },
     "allowImportingTsExtensions": true,
     "noEmit": true,
-    "types": []
-  }
+    "types": ["@react-three/fiber", "vitest/globals"]
+  },
+  "include": ["src/**/*.test.ts"]
 }

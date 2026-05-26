@@ -1,10 +1,10 @@
+import { Vector3 } from 'three';
 import { create } from 'zustand';
 
-import { SelectableObject } from './types';
+import { STAR_SHADER_PARAMS } from './core/components/StarField/const';
+import { Star, StarShaderParams } from './core/components/StarField/types';
 
-export type RenderMode = 'atmosphere' | 'voxel';
-
-export interface AppState {
+interface AppState {
   appState: 'start' | 'scene';
   setAppState: (state: 'start' | 'scene') => void;
 
@@ -14,17 +14,16 @@ export interface AppState {
   mapSeed: number;
   controlType: 'fpv' | 'editor';
 
-  renderMode: RenderMode;
-  setRenderMode: (mode: RenderMode) => void;
-
-  objects: SelectableObject[];
-  setObjects: (objects: SelectableObject[]) => void;
-
-  selectedObject: SelectableObject | null;
-  select: (object: SelectableObject | null) => void;
+  selectedObject: Star | null;
+  select: (object: Star | null) => void;
 
   playNewMap: () => void;
   createNewMap: () => void;
+
+  position: Vector3;
+  backgroundPosition: Vector3;
+  velocity: Vector3;
+  starShaderParams: StarShaderParams;
 }
 
 export const useStore = create<AppState>((set) => ({
@@ -37,17 +36,16 @@ export const useStore = create<AppState>((set) => ({
   mapSeed: 0,
   controlType: 'editor',
 
-  renderMode: 'atmosphere',
-  setRenderMode: (renderMode) => set({ renderMode }),
-
-  objects: [],
-  setObjects: (objects) => set({ objects }),
-
   selectedObject: null,
   select: (selectedObject) => set({ selectedObject }),
 
   playNewMap: () => set((state) => getNewPlayingState(state, 'fpv')),
   createNewMap: () => set((state) => getNewPlayingState(state, 'editor')),
+
+  position: new Vector3(),
+  backgroundPosition: new Vector3(),
+  velocity: new Vector3(),
+  starShaderParams: { ...STAR_SHADER_PARAMS },
 }));
 
 function getNewPlayingState(state: AppState, controlType: AppState['controlType']): Partial<AppState> {
@@ -57,4 +55,8 @@ function getNewPlayingState(state: AppState, controlType: AppState['controlType'
     gameState: 'playing',
     controlType,
   };
+}
+
+export function getState(): AppState {
+  return useStore.getState();
 }

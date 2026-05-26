@@ -1,3 +1,4 @@
+/* eslint-disable import/no-unused-modules */
 export function pow4(x: number) {
   const y = x * x;
 

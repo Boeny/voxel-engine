@@ -1,8 +1,4 @@
-import { useState } from 'react';
-
-import { useStore } from '../store';
-
-import { RenderMode } from './RenderMode';
+import { getState, useStore } from '../store';
 
 type Props = {
   showContinue: boolean;
@@ -13,27 +9,6 @@ type Props = {
 };
 
 function Component({ showContinue, closeMenu, playNewMap, createNewMap, exit }: Props) {
-  const [showRenderMode, setShowRenderMode] = useState(false);
-
-  if (showRenderMode) {
-    return (
-      <div className="absolute inset-0 flex items-center justify-center bg-gray-900/90 text-white z-50">
-        <div className="flex flex-col space-y-4 w-72">
-          <RenderMode />
-          <button
-            className="px-6 py-3 bg-blue-600 hover:bg-blue-500 rounded text-lg font-medium transition-colors"
-            onClick={(e) => {
-              e.stopPropagation();
-              createNewMap();
-            }}
-          >
-            Create map
-          </button>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div className="absolute inset-0 flex items-center justify-center bg-gray-900/90 text-white z-50">
       <div className="flex flex-col space-y-4 w-72">
@@ -64,7 +39,7 @@ function Component({ showContinue, closeMenu, playNewMap, createNewMap, exit }: 
           className="px-6 py-3 bg-blue-600 hover:bg-blue-500 rounded text-lg font-medium transition-colors"
           onClick={(e) => {
             e.stopPropagation();
-            setShowRenderMode(true);
+            createNewMap();
           }}
         >
           Create map
@@ -88,18 +63,15 @@ function Component({ showContinue, closeMenu, playNewMap, createNewMap, exit }: 
 
 export const MainMenu = () => {
   const appState = useStore((state) => state.appState);
-  const playNewMap = useStore((state) => state.playNewMap);
-  const createNewMap = useStore((state) => state.createNewMap);
-  const setGameState = useStore((state) => state.setGameState);
-  const setAppState = useStore((state) => state.setAppState);
+  const state = getState();
 
   return (
     <Component
       showContinue={appState === 'scene'}
-      closeMenu={() => setGameState('playing')}
-      playNewMap={playNewMap}
-      createNewMap={createNewMap}
-      exit={() => setAppState('start')}
+      closeMenu={() => state.setGameState('playing')}
+      playNewMap={state.playNewMap}
+      createNewMap={state.createNewMap}
+      exit={() => state.setAppState('start')}
     />
   );
 };

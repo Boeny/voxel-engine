@@ -1,13 +1,8 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
-import { memo } from 'react';
-
 import { useControls } from 'leva';
 
-import { Planet } from '@/core/planet';
-import { Star } from '@/core/starField';
-import { getControlParams } from '@/core/utils';
-import { useStore } from '@/store';
-import { SelectableObject } from '@/types';
+import { Star } from '@/core/components/StarField/types';
+import { getState, useStore } from '@/store';
+import { getControlParams } from '@/utils';
 
 // function PlanetParams({ selectedObject }: { selectedObject: Planet }) {
 //   useControls('Selected Object Settings', () => {
@@ -31,9 +26,9 @@ import { SelectableObject } from '@/types';
 //   return null;
 // }
 
-function StarParams({ selectedObject }: { selectedObject: Star }) {
+function StarControls({ star }: { star: Star }) {
   useControls('Selected Object Settings', () => {
-    return getControlParams(selectedObject, {
+    return getControlParams(star, {
       luminosity: [0.1, 100, 0.01],
     });
   });
@@ -41,74 +36,30 @@ function StarParams({ selectedObject }: { selectedObject: Star }) {
   return null;
 }
 
-function SelectedObjectParams() {
+function SelectedObjectControls() {
   const selectedObject = useStore((state) => state.selectedObject);
 
-  if (!selectedObject) {
-    return null;
-  }
-
-  // if (selectedObject instanceof Planet) {
-  //   return <PlanetParams selectedObject={selectedObject} />;
-  // }
-
-  if (selectedObject.type === 'star') {
-    return <StarParams selectedObject={selectedObject as any} />;
+  if (selectedObject) {
+    return <StarControls star={selectedObject} />;
   }
 
   return null;
 }
 
-function SelectableObjects() {
-  const objects = useStore((state) => state.objects);
-  const select = useStore((state) => state.select);
-  const selectedObject = useStore((state) => state.selectedObject);
-
-  return (
-    <div className="absolute left-4 top-1/2 -translate-y-1/2 z-10 flex flex-col gap-1.5">
-      {objects.map((obj) => {
-        const isSelected = selectedObject?.id === obj.id;
-
-        return (
-          <button
-            key={obj.id}
-            onClick={() => select(isSelected ? null : obj)}
-            className={[
-              'flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-mono transition-all duration-150 cursor-pointer select-none',
-              isSelected
-                ? 'bg-blue-500/30 border border-blue-400/70 text-blue-100 shadow-lg shadow-blue-900/30'
-                : 'bg-black/40 border border-white/10 text-white/70 hover:bg-white/10 hover:border-white/25 hover:text-white',
-            ].join(' ')}
-          >
-            <span className="capitalize tracking-wide">{obj.type}</span>
-            {isSelected && (
-              <span className="ml-auto text-blue-400/80">
-                <svg
-                  width="10"
-                  height="10"
-                  viewBox="0 0 10 10"
-                  fill="currentColor"
-                >
-                  <circle
-                    cx="5"
-                    cy="5"
-                    r="3"
-                  />
-                </svg>
-              </span>
-            )}
-          </button>
-        );
-      })}
-    </div>
+export const EditorHUD = () => {
+  useControls('Stars', () =>
+    getControlParams(getState().starShaderParams, {
+      uBrightnessMultiplier: [10, 1e13, 1000],
+      uRadiusMultiplier: [1, 10, 0.5],
+      uMinRadius: [1, 10, 0.5],
+      uMinBrightness: [0, 10, 0.01],
+      uMaxBrightness: [1, 10, 0.5],
+    }),
   );
-}
 
-export const EditorHUD = memo(() => {
   return (
     <>
-      <SelectedObjectParams />
-
+      <SelectedObjectControls />
       <div className="absolute top-4 left-4 z-10 text-white font-mono text-sm pointer-events-none drop-shadow-md bg-black/30 p-2 rounded">
         <div id="hud-fps"></div>
         <div id="hud-selected-name"></div>
@@ -118,8 +69,6 @@ export const EditorHUD = memo(() => {
         <div id="hud-position"></div>
         <div id="hud-exposure"></div>
       </div>
-
-      <SelectableObjects />
     </>
   );
-});
+};

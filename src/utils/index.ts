@@ -1,3 +1,6 @@
+/* eslint-disable import/no-unused-modules */
+import { Vector3 } from 'three';
+
 function getDistanceForUnits(value: number, units: string): string | undefined {
   if (value < 10) {
     return `${value.toFixed(1)}${units}`;
@@ -30,21 +33,21 @@ export function getDistanceText(km: number): string {
   }
   // km >= 1000
 
-  const k_km = km / 1000;
-  distance = getDistanceForUnits(k_km, 'k km');
+  const kKm = km / 1000;
+  distance = getDistanceForUnits(kKm, 'k km');
   if (distance) {
     return distance;
   }
   // k_km >= 1000
 
-  const mln_km = k_km / 1000;
-  distance = getDistanceForUnits(mln_km, ' mln km');
-  if (mln_km < 150) {
+  const mlnKm = kKm / 1000;
+  distance = getDistanceForUnits(mlnKm, ' mln km');
+  if (mlnKm < 150) {
     return distance!; // < 1000
   }
   // mln_km >= 150
 
-  const au = mln_km / 150;
+  const au = mlnKm / 150;
   distance = getDistanceForUnits(au, ' AU');
   if (distance) {
     return distance;
@@ -64,22 +67,22 @@ export function getDistanceText(km: number): string {
   }
   // ly >= 1000
 
-  const k_ly = ly / 1000;
-  distance = getDistanceForUnits(k_ly, 'k l.y.');
+  const kLy = ly / 1000;
+  distance = getDistanceForUnits(kLy, 'k l.y.');
   if (distance) {
     return distance;
   }
   // k_ly >= 1000
 
-  const mln_ly = k_ly / 1000;
+  const mlnLy = kLy / 1000;
 
-  return getDistanceForUnits(mln_ly, ' mln l.y.') || 'too much';
+  return getDistanceForUnits(mlnLy, ' mln l.y.') || 'too much';
 }
 
 export function getControlParams<T extends string>(
   object: Record<T, any>,
   params: Partial<Record<T, any[]>>,
-  convert?: (v: any) => any,
+  convert?: (field: T, v: any) => any,
 ): Record<string, any> {
   return mapObjectValues(params as Record<T, [number, number, number]>, ({ key: field, value }) => {
     return {
@@ -88,14 +91,14 @@ export function getControlParams<T extends string>(
       max: value[1],
       step: value[2],
       onChange: (newValue: any) => {
-        object[field] = convert ? convert(newValue) : newValue;
+        object[field] = convert ? convert(field, newValue) : newValue;
       },
       transient: true,
     };
   });
 }
 
-function mapObject<K1 extends keyof any, K2 extends keyof any, V1, V2>(
+export function mapObject<K1 extends keyof any, K2 extends keyof any, V1, V2>(
   obj: Record<K1, V1>,
   fn: (params: { key: K1; value: V1 }) => [K2, V2],
 ): Record<K2, V2> {
@@ -106,15 +109,28 @@ export function mapObjectValues<K extends keyof any, V1, V2>(obj: Record<K, V1>,
   return mapObject(obj, (params) => [params.key, fn(params)]);
 }
 
-function _mapObjectReverse<K extends string, V extends string>(obj: Record<K, V>): Record<V, K> {
+export function mapObjectReverse<K extends string, V extends string>(obj: Record<K, V>): Record<V, K> {
   return mapObject(obj, ({ key, value }) => [value, key]);
 }
-
-// ----
 
 export function setDOMContent(id: string, content: string | number) {
   const el = document.getElementById(id);
   if (el) {
     el.innerText = String(content);
   }
+}
+
+export function positionToString({ x, y, z }: Vector3): string {
+  return `(${x.toFixed(2)}, ${y.toFixed(2)}, ${z.toFixed(2)})`;
+}
+
+export function toArray<T>(obj: T): T extends Vector3 ? number[] : T[] {
+  if (obj instanceof Vector3) {
+    return [obj.x, obj.y, obj.z] as T extends Vector3 ? number[] : T[];
+  }
+  if (obj instanceof Array) {
+    return obj as T extends Vector3 ? number[] : T[];
+  }
+
+  return [obj] as T extends Vector3 ? number[] : T[];
 }

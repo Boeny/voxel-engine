@@ -3,8 +3,7 @@
  *
  * Declares shader uniform names + default values in ONE place. Installs
  * getter/setter on the class prototype for each name, so assignments like
- * `this.radius = 6371` automatically write to
- * `this.material.uniforms.radius.value`.
+ * `this[field] = value` automatically write to `this.material.uniforms[field].value`.
  *
  * Requires the class to have a `material: ShaderMaterial` field whose uniforms
  * object contains every key from `defs`. Use `uniformsFromDefs(defs)` to build
