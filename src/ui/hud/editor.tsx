@@ -1,6 +1,6 @@
 import { useControls } from 'leva';
 
-import { Star } from '@/core/components/StarField/types';
+import { BackgroundPoint } from '@/core/components/BackgroundPointsField/types';
 import { getState, useStore } from '@/store';
 import { getControlParams } from '@/utils';
 
@@ -26,9 +26,9 @@ import { getControlParams } from '@/utils';
 //   return null;
 // }
 
-function StarControls({ star }: { star: Star }) {
+function BackgroundPointControls({ point }: { point: BackgroundPoint }) {
   useControls('Selected Object Settings', () => {
-    return getControlParams(star, {
+    return getControlParams(point, {
       luminosity: [0.1, 100, 0.01],
     });
   });
@@ -40,20 +40,26 @@ function SelectedObjectControls() {
   const selectedObject = useStore((state) => state.selectedObject);
 
   if (selectedObject) {
-    return <StarControls star={selectedObject} />;
+    return <BackgroundPointControls point={selectedObject} />;
   }
 
   return null;
 }
 
 export const EditorHUD = () => {
-  useControls('Stars', () =>
-    getControlParams(getState().starShaderParams, {
+  useControls('Background points params', () =>
+    getControlParams(getState(), {
+      backgroundVelocityScale: [],
+    }),
+  );
+  useControls('Background points shader params', () =>
+    getControlParams(getState().backgroundShaderParams, {
       uBrightnessMultiplier: [10, 1e13, 1000],
       uRadiusMultiplier: [1, 10, 0.5],
       uMinRadius: [1, 10, 0.5],
       uMinBrightness: [0, 10, 0.01],
       uMaxBrightness: [1, 10, 0.5],
+      uBackgroundToLocalScale: [],
     }),
   );
 

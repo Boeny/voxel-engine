@@ -1,8 +1,11 @@
 import { Vector3 } from 'three';
 import { create } from 'zustand';
 
-import { STAR_SHADER_PARAMS } from './core/components/StarField/const';
-import { Star, StarShaderParams } from './core/components/StarField/types';
+import { BACKGROUND_SHADER_PARAMS } from './core/components/BackgroundPointsField/const';
+import { BackgroundPoint, BackgroundShaderParams } from './core/components/BackgroundPointsField/types';
+import { parseStarCatalog } from './core/components/BackgroundPointsField/utils';
+
+const stars = parseStarCatalog();
 
 interface AppState {
   appState: 'start' | 'scene';
@@ -14,8 +17,8 @@ interface AppState {
   mapSeed: number;
   controlType: 'fpv' | 'editor';
 
-  selectedObject: Star | null;
-  select: (object: Star | null) => void;
+  selectedObject: BackgroundPoint | null;
+  select: (object: BackgroundPoint | null) => void;
 
   playNewMap: () => void;
   createNewMap: () => void;
@@ -23,7 +26,9 @@ interface AppState {
   position: Vector3;
   backgroundPosition: Vector3;
   velocity: Vector3;
-  starShaderParams: StarShaderParams;
+  backgroundVelocityScale: number;
+  backgroundShaderParams: BackgroundShaderParams;
+  backgroundData: BackgroundPoint[];
 }
 
 export const useStore = create<AppState>((set) => ({
@@ -45,7 +50,9 @@ export const useStore = create<AppState>((set) => ({
   position: new Vector3(),
   backgroundPosition: new Vector3(),
   velocity: new Vector3(),
-  starShaderParams: { ...STAR_SHADER_PARAMS },
+  backgroundVelocityScale: 2,
+  backgroundShaderParams: { ...BACKGROUND_SHADER_PARAMS },
+  backgroundData: stars,
 }));
 
 function getNewPlayingState(state: AppState, controlType: AppState['controlType']): Partial<AppState> {

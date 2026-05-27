@@ -29,7 +29,7 @@ export default function App() {
           neverHide={false}
           hideCopyButton
           titleBar={{
-            title: 'Selected Object Settings',
+            title: 'Settings',
             drag: false,
             filter: false,
           }}

@@ -1,7 +1,6 @@
 /* eslint-disable import/no-unused-modules */
-import { Camera, Vector2, Vector3 } from 'three';
+import { Vector2, Vector3 } from 'three';
 
-import { LY_TO_KM } from '@/const';
 import { SelectableObject } from '@/types';
 
 // clean functions with vectors
@@ -40,12 +39,17 @@ export function clampVectorMax(v: Vector3, max: number): Vector3 {
   return norm(v).multiplyScalar(max);
 }
 
-export function getDistanceToObject(camera: Camera, selectedObject: SelectableObject | null): number {
-  if (!selectedObject) {
-    return 0;
+export function getDistanceToObject(
+  position: Vector3,
+  backgroundPosition: Vector3,
+  selectedObject: SelectableObject,
+  backgroundToLocalScale: number,
+): number {
+  if (selectedObject.type === 'background') {
+    return backgroundPosition.distanceTo(selectedObject.position) * backgroundToLocalScale;
   }
-  // Stars store position in LY; planets store position in km. Camera is in km.
-  const positionKm = selectedObject.type === 'star' ? mul(selectedObject.position, LY_TO_KM) : selectedObject.position;
 
-  return camera.position.distanceTo(positionKm) - selectedObject.radius;
+  const localObjectPosition = mul(selectedObject.position, backgroundToLocalScale);
+
+  return position.distanceTo(localObjectPosition) - selectedObject.radius;
 }

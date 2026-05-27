@@ -52,10 +52,11 @@ export function PlayerController() {
       cleanupPointerLockEvent();
       cleanupOtherEvents();
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useFrame((_, delta) => {
-    const { gameState, selectedObject: nearestGravityObject, position, velocity } = getState();
+    const { gameState, selectedObject: nearestGravityObject, position, velocity, backgroundPosition, backgroundShaderParams } = getState();
 
     if (gameState === 'playing' && renderer.domElement) {
       pointerLock.requestPointerLock(renderer.domElement);
@@ -83,7 +84,11 @@ export function PlayerController() {
 
     setDOMContent('hud-speed', `Speed: ${getDistanceText(velocity.length())}/s`);
     setDOMContent('hud-fps', `FPS: ${(1 / delta).toFixed(1)}`);
-    setDOMContent('hud-altitude', `Altitude: ${getDistanceText(getDistanceToObject(camera, nearestGravityObject) - playerHeight)}`);
+    nearestGravityObject &&
+      setDOMContent(
+        'hud-altitude',
+        `Altitude: ${getDistanceText(getDistanceToObject(position, backgroundPosition, nearestGravityObject, backgroundShaderParams.uBackgroundToLocalScale) - playerHeight)}`,
+      );
   });
 
   return null;

@@ -4,7 +4,7 @@ import { SUN_TEMPERATURE } from '@/const';
 import starsData from '@/data/stars.json';
 import { pow4 } from '@/utils/math';
 
-import { Star } from './types';
+import { BackgroundPoint } from './types';
 
 // Tanner Helland's approximation: blackbody temperature → sRGB chromaticity (normalized so brightest channel = 1)
 // Это эмпирический полиномиальный/логарифмический фит Tanner Helland (2012). Алгоритм такой:
@@ -121,14 +121,14 @@ function sphericalToCartesian(rightAscensionHours: number, declinationDegrees: n
   );
 }
 
-export function parseStarCatalog(offset = new Vector3()): Star[] {
+export function parseStarCatalog(offset = new Vector3()): BackgroundPoint[] {
   return starsData.map((star, index) => {
     const temperature = star.temperature || SUN_TEMPERATURE;
     const temperatureRatio = temperature / SUN_TEMPERATURE;
 
     return {
       id: index,
-      type: 'star',
+      type: 'background',
       name: star.name,
       position: sphericalToCartesian(star.ascension, star.declination, star.distance_ly).add(offset),
       color: temperatureToLinearRGB(temperature),

@@ -7,19 +7,19 @@ import { SelectableObject } from '@/types';
  * - radius in km
  * - luminosity - (T / T_sun)^4
  */
-export interface Star extends SelectableObject {
+export interface BackgroundPoint extends SelectableObject {
   color: Vector3;
   luminosity: number;
 }
 
 // Tunable shader params (driven from Leva). Defaults overwritten before first render.
-export type StarShaderParams = {
+export type BackgroundShaderParams = {
   uBrightnessMultiplier: number;
   uRadiusMultiplier: number;
   uMinRadius: number;
   uMinBrightness: number;
   uMaxBrightness: number;
-  uCameraPositionLy: Vector3;
+  uCameraBackgroundPosition: Vector3;
   uPixelAngularSize: number;
-  LY_TO_KM: number;
+  uBackgroundToLocalScale: number;
 };

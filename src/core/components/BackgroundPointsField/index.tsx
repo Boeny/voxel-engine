@@ -3,16 +3,14 @@ import { useMemo } from 'react';
 import { useFrame } from '@react-three/fiber';
 import { PerspectiveCamera } from 'three';
 
-import { LY_TO_KM } from '@/const';
 import { getState } from '@/store';
 import { toArray } from '@/utils';
 import { mul } from '@/utils/vector';
 
 import { PointsCloud } from '../PointsCloud';
 
-import starFrag from './shaders/frag.glsl?raw';
-import starVert from './shaders/vert.glsl?raw';
-import { Star } from './types';
+import frag from './shaders/frag.glsl?raw';
+import vert from './shaders/vert.glsl?raw';
 
 const ATTRIBUTES = [
   { name: 'position', length: 3 },
@@ -21,12 +19,8 @@ const ATTRIBUTES = [
   { name: 'radius', length: 1 },
 ] as const;
 
-type Props = {
-  data: Star[];
-};
-
-export const StarField = ({ data }: Props) => {
-  const shaderParams = getState().starShaderParams;
+export const BackgroundPointsField = () => {
+  const { backgroundShaderParams: shaderParams, backgroundData: data } = getState();
 
   // Build per-vertex attribute buffers from the catalog
   const attributes = useMemo(() => {
@@ -35,9 +29,9 @@ export const StarField = ({ data }: Props) => {
       data: new Float32Array(data.length * attr.length),
     }));
 
-    data.forEach((star, starIndex) => {
+    data.forEach((point, pointIndex) => {
       ATTRIBUTES.forEach((attr, attrIndex) => {
-        result[attrIndex].data.set(toArray(star[attr.name]), starIndex * attr.length);
+        result[attrIndex].data.set(toArray(point[attr.name]), pointIndex * attr.length);
       });
     });
 
@@ -46,20 +40,20 @@ export const StarField = ({ data }: Props) => {
 
   useFrame((state) => {
     const { backgroundPosition, position, velocity } = getState();
-    shaderParams.uCameraPositionLy.copy(backgroundPosition);
+    shaderParams.uCameraBackgroundPosition.copy(backgroundPosition);
 
     const fov = (state.camera as PerspectiveCamera).fov;
     const fovRadians = (fov * Math.PI) / 180;
     shaderParams.uPixelAngularSize = (2 * Math.tan(fovRadians / 2)) / window.innerHeight;
 
-    backgroundPosition.add(mul(velocity, 1 / LY_TO_KM));
+    backgroundPosition.add(mul(velocity, 1 / shaderParams.uBackgroundToLocalScale));
     position.add(velocity);
   });
 
   return (
     <PointsCloud
-      vertexShader={starVert}
-      fragmentShader={starFrag}
+      vertexShader={vert}
+      fragmentShader={frag}
       uniforms={shaderParams}
       attributes={attributes}
     />

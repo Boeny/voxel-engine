@@ -2,7 +2,7 @@ attribute vec3 color;
 attribute float luminosity;
 attribute float radius;
 
-uniform vec3 uCameraPositionLy;
+uniform vec3 uCameraBackgroundPosition;
 uniform float uPixelAngularSize;
 uniform float uBrightnessMultiplier;
 uniform float uRadiusMultiplier;
@@ -10,16 +10,16 @@ uniform float uMinRadius;
 uniform float uMinBrightness;
 uniform float uMaxBrightness;
 
-uniform float LY_TO_KM;
+uniform float uBackgroundToLocalScale;
 const float PI = 3.14159265359;
 
 varying vec3 vColor;
 
 void main() {
-    vec3 toStarLy = position - uCameraPositionLy;
-    float distanceLy = length(toStarLy);
+    vec3 toPoint = position - uCameraBackgroundPosition;
+    float distance = length(toPoint);
 
-    vec3 worldDirection = toStarLy / distanceLy;
+    vec3 worldDirection = toPoint / distance;
     vec4 viewDirection = viewMatrix * vec4(worldDirection, 0.0);
 
     // Place at far plane (clip-space z = w → NDC z = 1)
@@ -27,8 +27,8 @@ void main() {
     clipPosition.z = clipPosition.w;
     gl_Position = clipPosition;
 
-    float distanceKm = distanceLy * LY_TO_KM;
-    float angularRadius = atan(radius / distanceKm);
+    float localDistance = distance * uBackgroundToLocalScale;
+    float angularRadius = atan(radius / localDistance);
     float pixelRadius = (angularRadius / uPixelAngularSize) * uRadiusMultiplier;
 
     // Sprite size: 2 * pixelRadius (diameter), but clamped to user-configurable range

@@ -5,5 +5,5 @@ export type SelectableObject = {
   name: string;
   position: Vector3;
   radius: number;
-  type: 'planet' | 'star';
+  type: 'planet' | 'background';
 };

@@ -17,6 +17,7 @@ const HDR_PARAMS = {
   maxLum: 100.0, // sun glare
 };
 
+// eslint-disable-next-line import/no-unused-modules
 export function HDRControls() {
   const hdrRef = new HDREffect();
 
