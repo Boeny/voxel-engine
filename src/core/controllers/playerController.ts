@@ -25,6 +25,8 @@ export function PlayerController() {
   const { camera, gl: renderer } = useThree();
 
   useEffect(() => {
+    camera.rotation.order = 'YXZ'; // Allows proper FPS-like rotation without gimbal lock at poles
+
     const cleanupKeyboardEvents = setupKeyboardEvents({
       keydown: (e) => {
         const { gameState, setGameState } = getState();

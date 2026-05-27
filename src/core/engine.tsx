@@ -1,6 +1,6 @@
-import { memo, useEffect } from 'react';
+import { memo } from 'react';
 
-import { Canvas, useThree } from '@react-three/fiber';
+import { Canvas } from '@react-three/fiber';
 import { EffectComposer } from '@react-three/postprocessing';
 import { Vector3 } from 'three';
 
@@ -17,35 +17,27 @@ import { BloomControls } from './effects/bloom';
 
 const stars = parseStarCatalog(new Vector3(0, 0, 1));
 
-const SceneSetup = memo(() => {
-  const { camera } = useThree();
-
-  useEffect(() => {
-    camera.rotation.order = 'YXZ'; // Allows proper FPS-like rotation without gimbal lock at poles
-    camera.position.set(0, 0, 0);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  const Controller = getState().controlType === 'editor' ? EditorController : PlayerController;
-
+const SceneSetup = ({ Controller }: { Controller: React.ComponentType }) => {
   return (
     <>
       <Controller />
       <StarField data={stars} />
     </>
   );
-});
+};
 
 export const Engine = memo(() => {
+  const Controller = getState().controlType === 'editor' ? EditorController : PlayerController;
+
   return (
     <div className="w-full h-full relative bg-black">
       <HUD />
 
       <Canvas
-        camera={{ position: [0, 2, 0], fov: 50, near: NEAR_CULLING, far: FAR_CULLING }}
+        camera={{ position: [0, 0, 0], fov: 50, near: NEAR_CULLING, far: FAR_CULLING }}
         gl={{ logarithmicDepthBuffer: true }}
       >
-        <SceneSetup />
+        <SceneSetup Controller={Controller} />
 
         <EffectComposer>
           <BloomControls />

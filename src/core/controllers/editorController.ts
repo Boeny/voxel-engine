@@ -29,6 +29,8 @@ export function EditorController() {
   const { camera } = useThree();
 
   useEffect(() => {
+    camera.rotation.order = 'YXZ'; // Allows proper FPS-like rotation without gimbal lock at poles
+
     const cleanupKeyboardEvents = setupKeyboardEvents({
       keydown: (e) => {
         if (e.code === 'Escape') {
@@ -55,7 +57,7 @@ export function EditorController() {
       cleanupOtherEvents();
     };
   }, []);
-  3;
+
   useFrame((_, delta) => {
     const { selectedObject, position, velocity } = getState();
 

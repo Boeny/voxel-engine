@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 
-import { useFrame, useThree } from '@react-three/fiber';
+import { useFrame } from '@react-three/fiber';
 import { PerspectiveCamera } from 'three';
 
 import { LY_TO_KM } from '@/const';
@@ -26,7 +26,6 @@ type Props = {
 };
 
 export const StarField = ({ data }: Props) => {
-  const { size } = useThree();
   const shaderParams = getState().starShaderParams;
 
   // Build per-vertex attribute buffers from the catalog
@@ -51,7 +50,7 @@ export const StarField = ({ data }: Props) => {
 
     const fov = (state.camera as PerspectiveCamera).fov;
     const fovRadians = (fov * Math.PI) / 180;
-    shaderParams.uPixelAngularSize = (2 * Math.tan(fovRadians / 2)) / size.height;
+    shaderParams.uPixelAngularSize = (2 * Math.tan(fovRadians / 2)) / window.innerHeight;
 
     backgroundPosition.add(mul(velocity, 1 / LY_TO_KM));
     position.add(velocity);
