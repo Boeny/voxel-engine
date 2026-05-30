@@ -39,15 +39,14 @@ export const BackgroundPointsField = () => {
   }, [data]);
 
   useFrame((state) => {
-    const { backgroundPosition, position, velocity } = getState();
+    const { backgroundPosition, backgroundVelocity } = getState();
     shaderParams.uCameraBackgroundPosition.copy(backgroundPosition);
 
     const fov = (state.camera as PerspectiveCamera).fov;
     const fovRadians = (fov * Math.PI) / 180;
     shaderParams.uPixelAngularSize = (2 * Math.tan(fovRadians / 2)) / window.innerHeight;
 
-    backgroundPosition.add(mul(velocity, 1 / shaderParams.uBackgroundToLocalScale));
-    position.add(velocity);
+    backgroundPosition.add(backgroundVelocity);
   });
 
   return (

@@ -49,7 +49,7 @@ function SelectedObjectControls() {
 export const EditorHUD = () => {
   useControls('Background points params', () =>
     getControlParams(getState(), {
-      backgroundVelocityScale: [],
+      backgroundSpeed: [],
     }),
   );
   useControls('Background points shader params', () =>
@@ -70,10 +70,19 @@ export const EditorHUD = () => {
         <div id="hud-fps"></div>
         <div id="hud-selected-name"></div>
         <div id="hud-altitude"></div>
+        <div id="hud-bkspeed"></div>
         <div id="hud-speed"></div>
         <div id="hud-grounded"></div>
+        <div id="hud-bkposition"></div>
         <div id="hud-position"></div>
+        <div id="hud-rotation"></div>
         <div id="hud-exposure"></div>
+        <button
+          className=""
+          onClick={() => getState().setStartPosition()}
+        >
+          Set start position
+        </button>
       </div>
     </>
   );

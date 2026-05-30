@@ -1,4 +1,4 @@
-import { Vector3 } from 'three';
+import { Euler, Vector3 } from 'three';
 import { create } from 'zustand';
 
 import { BACKGROUND_SHADER_PARAMS } from './core/components/BackgroundPointsField/const';
@@ -23,12 +23,19 @@ interface AppState {
   playNewMap: () => void;
   createNewMap: () => void;
 
+  startRotation: Euler;
+  rotation: Euler;
+  startPosition: Vector3;
   position: Vector3;
-  backgroundPosition: Vector3;
   velocity: Vector3;
-  backgroundVelocityScale: number;
+  backgroundStartPosition: Vector3;
+  backgroundPosition: Vector3;
+  backgroundVelocity: Vector3;
+  backgroundSpeed: number;
   backgroundShaderParams: BackgroundShaderParams;
   backgroundData: BackgroundPoint[];
+
+  setStartPosition: () => void;
 }
 
 export const useStore = create<AppState>((set) => ({
@@ -47,12 +54,26 @@ export const useStore = create<AppState>((set) => ({
   playNewMap: () => set((state) => getNewPlayingState(state, 'fpv')),
   createNewMap: () => set((state) => getNewPlayingState(state, 'editor')),
 
+  startRotation: new Euler(),
+  rotation: new Euler(),
+  startPosition: new Vector3(),
   position: new Vector3(),
-  backgroundPosition: new Vector3(),
   velocity: new Vector3(),
-  backgroundVelocityScale: 2,
+
+  backgroundStartPosition: new Vector3(),
+  backgroundPosition: new Vector3(),
+  backgroundVelocity: new Vector3(),
+  backgroundSpeed: 2,
   backgroundShaderParams: { ...BACKGROUND_SHADER_PARAMS },
   backgroundData: stars,
+
+  setStartPosition: () => {
+    set((state) => ({
+      startPosition: state.position,
+      startRotation: state.rotation,
+      backgroundStartPosition: state.backgroundPosition,
+    }));
+  },
 }));
 
 function getNewPlayingState(state: AppState, controlType: AppState['controlType']): Partial<AppState> {
@@ -61,6 +82,9 @@ function getNewPlayingState(state: AppState, controlType: AppState['controlType'
     appState: 'scene',
     gameState: 'playing',
     controlType,
+    position: state.startPosition,
+    rotation: state.startRotation,
+    backgroundPosition: state.backgroundStartPosition,
   };
 }
 

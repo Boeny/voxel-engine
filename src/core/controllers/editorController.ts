@@ -8,7 +8,7 @@ import { preventDefault, setupEvents, setupKeyboardEvents, setupMouseEvents } fr
 import { getState } from '@/store';
 import { getDistanceToObject, sub } from '@/utils/vector';
 
-import { getDistanceText, positionToString, setDOMContent } from '../../utils';
+import { getDistanceText, vectorToString, setDOMContent } from '../../utils';
 
 import {
   applyAcceleration,
@@ -16,7 +16,6 @@ import {
   rotateOnLeftDrag,
   changeVelocityOnRightDrag,
   changeVelocityOnWheel,
-  getCurrentMoveSpeed,
   horMovement,
   vertMovement,
 } from './utils';
@@ -25,8 +24,9 @@ export function EditorController() {
   const { camera } = useThree();
 
   useEffect(() => {
+    const { rotation } = getState();
+    camera.rotation.copy(rotation);
     camera.rotation.order = 'YXZ'; // Allows proper FPS-like rotation without gimbal lock at poles
-    getState().selectedObject = getState().backgroundData[0];
 
     const cleanupKeyboardEvents = setupKeyboardEvents({
       keydown: (e) => {
@@ -56,27 +56,44 @@ export function EditorController() {
   }, []);
 
   useFrame((_, delta) => {
-    const { selectedObject, position, velocity, backgroundPosition, backgroundVelocityScale, backgroundShaderParams } = getState();
+    const {
+      selectedObject,
+      rotation,
+      position,
+      velocity,
+      backgroundPosition,
+      backgroundVelocity,
+      backgroundSpeed,
+      backgroundShaderParams,
+    } = getState();
 
-    const moveSpeed = selectedObject
-      ? getCurrentMoveSpeed(sub(position, selectedObject.position).length())
-      : backgroundVelocityScale * backgroundShaderParams.uBackgroundToLocalScale;
+    const moveSpeed = selectedObject ? Math.max(1, sub(backgroundPosition, selectedObject.position).length()) : backgroundSpeed;
 
     const moveDir = new Vector3();
     horMovement(camera.quaternion, moveDir);
     vertMovement(moveDir, new Vector3(0, 1, 0).applyQuaternion(camera.quaternion));
 
-    applyAcceleration(delta, moveDir, velocity, moveSpeed, true);
+    applyAcceleration(delta, moveDir, backgroundVelocity, moveSpeed, true);
     changeRotation(delta, camera);
 
-    selectedObject && changeVelocityOnRightDrag(camera, position, velocity, selectedObject);
-    selectedObject && changeVelocityOnWheel(delta, position, moveSpeed, velocity, selectedObject);
+    selectedObject && changeVelocityOnRightDrag(camera, backgroundPosition, backgroundVelocity, selectedObject);
+    selectedObject && changeVelocityOnWheel(delta, backgroundPosition, moveSpeed, backgroundVelocity, selectedObject);
 
     rotateOnLeftDrag(camera);
 
+    rotation.copy(camera.rotation);
+
+    // HUD
+
     selectedObject && setDOMContent('hud-selected-name', `Selected: ${selectedObject.name}`);
-    setDOMContent('hud-position', `Position: ${positionToString(position)}`);
-    setDOMContent('hud-speed', `Speed: ${getDistanceText(velocity.length())}/s`);
+    setDOMContent('hud-bkposition', `Background Position: ${vectorToString(backgroundPosition, 10)}`);
+    setDOMContent('hud-position', `Local Position: ${vectorToString(position)}`);
+    setDOMContent('hud-rotation', `Rotation: ${vectorToString(rotation)}`);
+    setDOMContent(
+      'hud-bkspeed',
+      `Background Speed: ${getDistanceText(backgroundVelocity.length() * backgroundShaderParams.uBackgroundToLocalScale)}/s`,
+    );
+    setDOMContent('hud-speed', `Local Speed: ${getDistanceText(velocity.length())}/s`);
     setDOMContent('hud-fps', `FPS: ${(1 / delta).toFixed(1)}`);
     selectedObject &&
       setDOMContent(

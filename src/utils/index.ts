@@ -120,8 +120,8 @@ export function setDOMContent(id: string, content: string | number) {
   }
 }
 
-export function positionToString({ x, y, z }: Vector3): string {
-  return `(${x.toFixed(2)}, ${y.toFixed(2)}, ${z.toFixed(2)})`;
+export function vectorToString({ x, y, z }: { x: number; y: number; z: number }, precision = 2): string {
+  return `(${x.toFixed(precision)}, ${y.toFixed(precision)}, ${z.toFixed(precision)})`;
 }
 
 export function toArray<T>(obj: T): T extends Vector3 ? number[] : T[] {

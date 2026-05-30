@@ -64,18 +64,6 @@ export function applyAcceleration(delta: number, moveDir: Vector3, velocity: Vec
   }
 }
 
-export function getCurrentMoveSpeed(distanceToObject: number) {
-  // Effective distance used for scaling
-  // If focus is planet center, scale with altitude
-  const effectiveDist = Math.max(1, distanceToObject);
-
-  // Logarithmic-like scale for speed.
-  // In close range it's small, in far range it's large.
-  const speedScale = Math.max(5.0, effectiveDist * 2.0);
-
-  return speedScale;
-}
-
 export function changeRotation(delta: number, camera: Camera) {
   // Camera roll
   if (keys['KeyQ']) {
@@ -136,10 +124,7 @@ export function changeVelocityOnWheel(
     const vectorFromObject = sub(position, selectedObject.position);
     const distanceToObject = vectorFromObject.length();
 
-    let newDist = distanceToObject + moveSpeed * delta * zoomAmount;
-    if (newDist < selectedObject.radius) {
-      newDist = selectedObject.radius;
-    }
+    const newDist = distanceToObject + moveSpeed * delta * zoomAmount;
 
     const newOffset = norm(vectorFromObject).multiplyScalar(newDist);
     // Only apply if it doesn't push us into the planet (checked below)
