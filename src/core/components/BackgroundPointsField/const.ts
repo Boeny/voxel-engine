@@ -1,4 +1,4 @@
-import { Vector3 } from 'three';
+import { Vector2, Vector3 } from 'three';
 
 import { LY_TO_KM } from '@/const';
 
@@ -13,4 +13,5 @@ export const BACKGROUND_SHADER_PARAMS: BackgroundShaderParams = {
   uCameraBackgroundPosition: new Vector3(),
   uPixelAngularSize: 0,
   uBackgroundToLocalScale: LY_TO_KM,
+  uClickPoint: new Vector2(-1, -1),
 };

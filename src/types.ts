@@ -1,7 +1,6 @@
 import { Vector3 } from 'three';
 
 export type SelectableObject = {
-  id: number | string;
   name: string;
   position: Vector3;
   radius: number;

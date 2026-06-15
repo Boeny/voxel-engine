@@ -29,7 +29,7 @@ import { getControlParams } from '@/utils';
 function BackgroundPointControls({ point }: { point: BackgroundPoint }) {
   useControls('Selected Object Settings', () => {
     return getControlParams(point, {
-      luminosity: [0.1, 100, 0.01],
+      //luminosity: [0.1, 100, 0.01],
     });
   });
 
@@ -54,12 +54,12 @@ export const EditorHUD = () => {
   );
   useControls('Background points shader params', () =>
     getControlParams(getState().backgroundShaderParams, {
-      uBrightnessMultiplier: [10, 1e13, 1000],
-      uRadiusMultiplier: [1, 10, 0.5],
-      uMinRadius: [1, 10, 0.5],
-      uMinBrightness: [0, 10, 0.01],
-      uMaxBrightness: [1, 10, 0.5],
-      uBackgroundToLocalScale: [],
+      uBrightnessMultiplier: [10, 1e13, 1000], // 3e11 for realistic
+      uRadiusMultiplier: [1, 10, 0.5], // 1 for realistic
+      uMinRadius: [1, 10, 0.5], // 3 for realistic
+      uMinBrightness: [0, 10, 0.01], // 0 for realistic
+      uMaxBrightness: [1, 10, 0.5], // 10 for realistic
+      uBackgroundToLocalScale: [], // 9461000000000
     }),
   );
 

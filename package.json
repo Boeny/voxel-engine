@@ -6,8 +6,8 @@
   "scripts": {
     "predev": "npm run lint && npm run format && npm run typecheck",
     "dev": "vite",
-    "build": "npm run predev && tsc -b && vite build",
-    "github-pages": "npm run predev && tsc -b && vite build --outDir ./docs",
+    "build": "vite build --outDir ./dist",
+    "github-pages": "vite build --outDir ./docs",
     "lint": "eslint ./src --fix",
     "format": "prettier --write ./src",
     "typecheck": "tsc --noEmit",

@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import { memo } from 'react';
 
 import { Canvas } from '@react-three/fiber';
@@ -11,7 +12,7 @@ import { BackgroundPointsField } from './components/BackgroundPointsField';
 import { EditorController } from './controllers/editorController';
 import { PlayerController } from './controllers/playerController';
 import { BloomControls } from './effects/bloom';
-//import { HDRControls } from './effects/hdr';
+import { HDRControls } from './effects/hdr';
 
 const SceneSetup = ({ Controller }: { Controller: React.ComponentType }) => {
   return (

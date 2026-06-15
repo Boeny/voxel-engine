@@ -3,9 +3,6 @@ import { create } from 'zustand';
 
 import { BACKGROUND_SHADER_PARAMS } from './core/components/BackgroundPointsField/const';
 import { BackgroundPoint, BackgroundShaderParams } from './core/components/BackgroundPointsField/types';
-import { parseStarCatalog } from './core/components/BackgroundPointsField/utils';
-
-const stars = parseStarCatalog();
 
 interface AppState {
   appState: 'start' | 'scene';
@@ -65,7 +62,7 @@ export const useStore = create<AppState>((set) => ({
   backgroundVelocity: new Vector3(),
   backgroundSpeed: 2,
   backgroundShaderParams: { ...BACKGROUND_SHADER_PARAMS },
-  backgroundData: stars,
+  backgroundData: [],
 
   setStartPosition: () => {
     set((state) => ({

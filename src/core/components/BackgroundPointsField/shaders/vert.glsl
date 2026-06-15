@@ -1,6 +1,7 @@
 attribute vec3 color;
 attribute float luminosity;
 attribute float radius;
+attribute float isSelected;
 
 uniform vec3 uCameraBackgroundPosition;
 uniform float uPixelAngularSize;
@@ -32,7 +33,7 @@ void main() {
     float pixelRadius = (angularRadius / uPixelAngularSize) * uRadiusMultiplier;
 
     // Sprite size: 2 * pixelRadius (diameter), but clamped to user-configurable range
-    gl_PointSize = max(pixelRadius, uMinRadius);
+    gl_PointSize = isSelected > 0.5 ? 1000.0 : max(pixelRadius, uMinRadius);
 
     // Per-pixel brightness: surface brightness times (star area / rendered disc area), capped at 1
     float fillRatio = min(1.0, 4.0 * pixelRadius * pixelRadius / (gl_PointSize * gl_PointSize));

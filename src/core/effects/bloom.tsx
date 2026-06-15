@@ -18,7 +18,7 @@ export function BloomControls() {
 
   useControls('Bloom', () =>
     getControlParams(bloomParamsRef.current, {
-      intensity: [0, 100, 0.01],
+      intensity: [0, 100, 0.01], // 40 for realistic
       smoothing: [0, 1, 0.01],
       threshold: [0, 10, 0.01],
     }),
