@@ -25,3 +25,4 @@ coverage/
 CLAUDE.md
 .venv/
 .claude/
+__pycache__

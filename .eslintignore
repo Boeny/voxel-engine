@@ -6,3 +6,4 @@ jest.config.*
 vitest.config.*
 vite.config.*
 docs/
+__pycache__
