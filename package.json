@@ -1,7 +1,7 @@
 {
   "name": "voxel-engine",
   "private": true,
-  "version": "0.0.1",
+  "version": "0.0.5",
   "type": "module",
   "scripts": {
     "predev": "npm run lint && npm run format && npm run typecheck",
@@ -13,7 +13,8 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "stars:prepare": "make install",
-    "stars:fetch": "make fetch"
+    "stars:fetch": "make fetch",
+    "stars:build": "make bin"
   },
   "dependencies": {
     "@react-three/fiber": "9.6.0",
