@@ -4,6 +4,7 @@ import { useFrame } from '@react-three/fiber';
 import { Intersection, PerspectiveCamera, Points, Raycaster, Vector3 } from 'three';
 
 import { getState } from '@/store';
+import { sub } from '@/utils/vector';
 
 import { PointsCloud } from '../PointsCloud';
 
@@ -14,6 +15,7 @@ const STAR_BIN_PATH = '/assets/stars.dat';
 const STAR_JSON_PATH = '/assets/stars.json';
 
 const BINARY_ITEM_LENGTH = 8;
+const SELECTION_MIN_BRIGHTNESS = 0.1;
 
 const ATTRIBUTES = [
   { name: 'position', length: 3 },
@@ -99,26 +101,40 @@ export const BackgroundPointsField = () => {
   const customRaycast = useCallback(
     function (this: Points, raycaster: Raycaster, intersects: Intersection[]) {
       const posData = getAttributeData(ATTR_INDEX.position);
-      if (!posData) {
+      const luminosityData = getAttributeData(ATTR_INDEX.luminosity);
+      const radiusData = getAttributeData(ATTR_INDEX.radius);
+      if (!posData || !luminosityData || !radiusData) {
         return;
       }
 
       const count = posData.length / 3;
-      const { backgroundPosition, backgroundShaderParams } = getState();
+      const { backgroundPosition, backgroundShaderParams: params } = getState();
       const ray = raycaster.ray;
 
-      const angularThreshold = backgroundShaderParams.uPixelAngularSize * backgroundShaderParams.uMinRadius * 2;
+      const angularThreshold = params.uPixelAngularSize * params.uMinRadius * 2;
       const dotThreshold = Math.cos(angularThreshold);
 
       let bestDot = dotThreshold;
       let bestIndex = -1;
 
-      for (let i = 0; i < count; i++) {
-        starDirScratch.current
-          .set(posData[i * 3] - backgroundPosition.x, posData[i * 3 + 1] - backgroundPosition.y, posData[i * 3 + 2] - backgroundPosition.z)
-          .normalize();
+      const dir = starDirScratch.current;
 
-        const dot = starDirScratch.current.dot(ray.direction);
+      for (let i = 0; i < count; i++) {
+        dir.copy(sub(getPosition(posData, i), backgroundPosition));
+        const distance = dir.length();
+        dir.normalize();
+
+        const localDistance = distance * params.uBackgroundToLocalScale;
+        const pixelRadius = (Math.atan(radiusData[i] / localDistance) / params.uPixelAngularSize) * params.uRadiusMultiplier;
+        const pointSize = Math.max(pixelRadius, params.uMinRadius);
+        const fillRatio = Math.min(1, (4 * pixelRadius * pixelRadius) / (pointSize * pointSize));
+        const brightness = Math.max(luminosityData[i] * fillRatio * params.uBrightnessMultiplier, params.uMinBrightness);
+
+        if (brightness < SELECTION_MIN_BRIGHTNESS) {
+          continue;
+        }
+
+        const dot = dir.dot(ray.direction);
         if (dot > bestDot) {
           bestDot = dot;
           bestIndex = i;
