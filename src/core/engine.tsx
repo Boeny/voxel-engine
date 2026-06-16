@@ -14,15 +14,6 @@ import { PlayerController } from './controllers/playerController';
 import { BloomControls } from './effects/bloom';
 import { HDRControls } from './effects/hdr';
 
-const SceneSetup = ({ Controller }: { Controller: React.ComponentType }) => {
-  return (
-    <>
-      <Controller />
-      <BackgroundPointsField />
-    </>
-  );
-};
-
 export const Engine = memo(() => {
   const Controller = getState().controlType === 'editor' ? EditorController : PlayerController;
 
@@ -34,7 +25,9 @@ export const Engine = memo(() => {
         camera={{ position: [0, 0, 0], fov: 50, near: NEAR_CULLING, far: FAR_CULLING }}
         gl={{ logarithmicDepthBuffer: true }}
       >
-        <SceneSetup Controller={Controller} />
+        <Controller />
+
+        <BackgroundPointsField />
 
         <EffectComposer>
           <BloomControls />
