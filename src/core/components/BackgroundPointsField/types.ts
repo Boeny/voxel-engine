@@ -23,6 +23,4 @@ export type BackgroundShaderParams = {
   uPixelAngularSize: number;
   uBackgroundToLocalScale: number;
   uClickPoint: Vector2;
-  uSelectedPosition: Vector3;
-  uHasSelected: number;
 };

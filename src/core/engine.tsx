@@ -9,6 +9,7 @@ import { getState } from '@/store';
 import { HUD } from '@/ui/hud';
 
 import { BackgroundPointsField } from './components/BackgroundPointsField';
+import { StarSelectionRing } from './components/StarSelectionRing';
 import { EditorController } from './controllers/editorController';
 import { PlayerController } from './controllers/playerController';
 import { BloomControls } from './effects/bloom';
@@ -20,6 +21,7 @@ export const Engine = memo(() => {
   return (
     <div className="w-full h-full relative bg-black">
       <HUD />
+      <StarSelectionRing />
 
       <Canvas
         camera={{ position: [0, 0, 0], fov: 50, near: NEAR_CULLING, far: FAR_CULLING }}

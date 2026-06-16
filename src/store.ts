@@ -16,6 +16,8 @@ interface AppState {
 
   selectedObject: BackgroundPoint | null;
   select: (object: BackgroundPoint | null) => void;
+  selectionRingEl: HTMLDivElement | null;
+  setSelectionRingEl: (el: HTMLDivElement | null) => void;
 
   playNewMap: () => void;
   createNewMap: () => void;
@@ -47,6 +49,8 @@ export const useStore = create<AppState>((set) => ({
 
   selectedObject: null,
   select: (selectedObject) => set({ selectedObject }),
+  selectionRingEl: null,
+  setSelectionRingEl: (selectionRingEl) => set({ selectionRingEl }),
 
   playNewMap: () => set((state) => getNewPlayingState(state, 'fpv')),
   createNewMap: () => set((state) => getNewPlayingState(state, 'editor')),

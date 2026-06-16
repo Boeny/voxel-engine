@@ -78,14 +78,10 @@ function getPosition(posData: Float32Array, index: number) {
   return new Vector3(posData[index * 3], posData[index * 3 + 1], posData[index * 3 + 2]);
 }
 
-// getAttributes(data.length, (attr, itemIndex, valueIndex) => toArray(data[itemIndex][attr.name])[valueIndex]));
-
 export const BackgroundPointsField = () => {
-  //const { raycaster, camera, scene } = useThree();
   const { backgroundShaderParams: shaderParams } = getState();
   const [attributes, setAttributes] = useState<Attribute[] | null>(null);
   const metaRef = useRef<Record<number, { name: string; spectral_type: string }>>({});
-  const starDirScratch = useRef(new Vector3());
 
   const getAttributeData = useCallback(
     (index: number) => {
@@ -99,7 +95,8 @@ export const BackgroundPointsField = () => {
   );
 
   const customRaycast = useCallback(
-    function (this: Points, raycaster: Raycaster, intersects: Intersection[]) {
+    function (object: Points, raycaster: Raycaster, intersects: Intersection[]) {
+      //object.raycaster.params.Points.threshold = 0.2;
       const posData = getAttributeData(ATTR_INDEX.position);
       const luminosityData = getAttributeData(ATTR_INDEX.luminosity);
       const radiusData = getAttributeData(ATTR_INDEX.radius);
@@ -117,10 +114,8 @@ export const BackgroundPointsField = () => {
       let bestDot = dotThreshold;
       let bestIndex = -1;
 
-      const dir = starDirScratch.current;
-
       for (let i = 0; i < count; i++) {
-        dir.copy(sub(getPosition(posData, i), backgroundPosition));
+        const dir = sub(getPosition(posData, i), backgroundPosition);
         const distance = dir.length();
         dir.normalize();
 
@@ -142,7 +137,7 @@ export const BackgroundPointsField = () => {
       }
 
       if (bestIndex >= 0) {
-        intersects.push({ distance: 1e30, point: new Vector3(), index: bestIndex, object: this, face: null });
+        intersects.push({ distance: 1e30, point: new Vector3(), index: bestIndex, object, face: null });
       }
     },
     [getAttributeData],
@@ -163,12 +158,27 @@ export const BackgroundPointsField = () => {
   }, []);
 
   useFrame((state) => {
-    const { backgroundPosition, backgroundVelocity } = getState();
+    const { backgroundPosition, backgroundVelocity, selectedObject, selectionRingEl } = getState();
     shaderParams.uCameraBackgroundPosition.copy(backgroundPosition);
 
     const fov = (state.camera as PerspectiveCamera).fov;
     const fovRadians = (fov * Math.PI) / 180;
     shaderParams.uPixelAngularSize = (2 * Math.tan(fovRadians / 2)) / window.innerHeight;
+
+    if (selectionRingEl && selectedObject?.type === 'background') {
+      const dir = sub(selectedObject.position, backgroundPosition).normalize();
+      const ringCamDir = new Vector3();
+      state.camera.getWorldDirection(ringCamDir);
+
+      if (dir.dot(ringCamDir) > 0) {
+        dir.multiplyScalar(1000).project(state.camera);
+        selectionRingEl.style.display = 'block';
+        selectionRingEl.style.left = `${((dir.x + 1) / 2) * window.innerWidth}px`;
+        selectionRingEl.style.top = `${((-dir.y + 1) / 2) * window.innerHeight}px`;
+      } else {
+        selectionRingEl.style.display = 'none';
+      }
+    }
 
     backgroundPosition.add(backgroundVelocity);
   });
@@ -185,12 +195,13 @@ export const BackgroundPointsField = () => {
       attributes={attributes}
       raycast={customRaycast}
       onPointerMissed={() => {
-        shaderParams.uHasSelected = 0;
         getState().select(null);
       }}
       onClick={(event, _point) => {
+        const { select } = getState();
+
         if (event.index === undefined) {
-          getState().select(null);
+          select(null);
 
           return;
         }
@@ -204,19 +215,12 @@ export const BackgroundPointsField = () => {
         }
         const position = getPosition(posData, event.index);
 
-        shaderParams.uSelectedPosition.copy(position);
-        shaderParams.uHasSelected = 1;
-
-        getState().select(
-          event.index === undefined
-            ? null
-            : {
-                name: meta?.name || 'Unknown',
-                position,
-                radius: radData[event.index],
-                type: 'background',
-              },
-        );
+        select({
+          name: meta?.name || 'Unknown',
+          position,
+          radius: radData[event.index],
+          type: 'background',
+        });
       }}
     />
   );
