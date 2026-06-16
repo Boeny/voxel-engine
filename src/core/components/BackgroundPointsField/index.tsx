@@ -184,6 +184,10 @@ export const BackgroundPointsField = () => {
       uniforms={shaderParams}
       attributes={attributes}
       raycast={customRaycast}
+      onPointerMissed={() => {
+        shaderParams.uHasSelected = 0;
+        getState().select(null);
+      }}
       onClick={(event, _point) => {
         if (event.index === undefined) {
           getState().select(null);

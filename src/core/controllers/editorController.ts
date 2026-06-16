@@ -85,7 +85,7 @@ export function EditorController() {
 
     // HUD
 
-    selectedObject && setDOMContent('hud-selected-name', `Selected: ${selectedObject.name}`);
+    setDOMContent('hud-selected-name', selectedObject ? `Selected: ${selectedObject.name}` : 'Selected: None');
     setDOMContent('hud-bkposition', `Background Position: ${vectorToString(backgroundPosition, 10)}`);
     setDOMContent('hud-position', `Local Position: ${vectorToString(position)}`);
     setDOMContent('hud-rotation', `Rotation: ${vectorToString(rotation)}`);
@@ -95,11 +95,13 @@ export function EditorController() {
     );
     setDOMContent('hud-speed', `Local Speed: ${getDistanceText(velocity.length())}/s`);
     setDOMContent('hud-fps', `FPS: ${(1 / delta).toFixed(1)}`);
-    selectedObject &&
-      setDOMContent(
-        'hud-altitude',
-        `Altitude: ${getDistanceText(getDistanceToObject(position, backgroundPosition, selectedObject, backgroundShaderParams.uBackgroundToLocalScale))}`,
-      );
+
+    setDOMContent(
+      'hud-altitude',
+      selectedObject
+        ? `Altitude: ${getDistanceText(getDistanceToObject(position, backgroundPosition, selectedObject, backgroundShaderParams.uBackgroundToLocalScale))}`
+        : 'Altitude: None',
+    );
   });
 
   return null;

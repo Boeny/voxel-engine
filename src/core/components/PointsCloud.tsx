@@ -9,10 +9,11 @@ type Props = {
   uniforms: Record<string, any>;
   attributes: { name: string; data: Float32Array<ArrayBufferLike>; length: number }[];
   onClick: (event: ThreeEvent<MouseEvent>, point: Vector2) => void;
+  onPointerMissed?: () => void;
   raycast?: (this: Points, raycaster: Raycaster, intersects: Intersection[]) => void;
 };
 
-export const PointsCloud = ({ vertexShader, fragmentShader, uniforms, attributes, onClick, raycast }: Props) => {
+export const PointsCloud = ({ vertexShader, fragmentShader, uniforms, attributes, onClick, onPointerMissed, raycast }: Props) => {
   const ref = useRef<ShaderMaterial>(null);
 
   useFrame(() => {
@@ -28,6 +29,7 @@ export const PointsCloud = ({ vertexShader, fragmentShader, uniforms, attributes
     <points
       frustumCulled={false}
       onClick={(e) => onClick(e, new Vector2(e.clientX, e.clientY))}
+      onPointerMissed={onPointerMissed}
       raycast={raycast}
     >
       <bufferGeometry>
