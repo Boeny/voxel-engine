@@ -24,3 +24,9 @@ export type BackgroundShaderParams = {
   uBackgroundToLocalScale: number;
   uClickPoint: Vector2;
 };
+
+export type Attribute = {
+  name: string;
+  length: number;
+  data: Float32Array<ArrayBufferLike>;
+};

@@ -53,3 +53,7 @@ export function getDistanceToObject(
 
   return position.distanceTo(localObjectPosition) - selectedObject.radius;
 }
+
+export function vectorToString({ x, y, z }: { x: number; y: number; z: number }, precision = 2): string {
+  return `(${x.toFixed(precision)}, ${y.toFixed(precision)}, ${z.toFixed(precision)})`;
+}

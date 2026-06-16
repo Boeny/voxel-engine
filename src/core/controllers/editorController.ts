@@ -6,9 +6,8 @@ import { Vector3 } from 'three';
 
 import { preventDefault, setupEvents, setupKeyboardEvents, setupMouseEvents } from '@/events';
 import { getState } from '@/store';
-import { getDistanceToObject, sub } from '@/utils/vector';
-
-import { getDistanceText, vectorToString, setDOMContent } from '../../utils';
+import { setDOMContent, getDistanceText } from '@/utils/ui';
+import { getDistanceToObject, sub, vectorToString } from '@/utils/vector';
 
 import {
   applyAcceleration,

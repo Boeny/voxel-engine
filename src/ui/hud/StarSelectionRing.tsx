@@ -1,19 +1,7 @@
-import { useEffect, useRef } from 'react';
-
-import { getState } from '@/store';
-
 export const StarSelectionRing = () => {
-  const divRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    getState().setSelectionRingEl(divRef.current);
-
-    return () => getState().setSelectionRingEl(null);
-  }, []);
-
   return (
     <div
-      ref={divRef}
+      id="selection-ring"
       style={{
         position: 'fixed',
         width: 30,

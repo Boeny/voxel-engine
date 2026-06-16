@@ -2,7 +2,7 @@ import { useControls } from 'leva';
 
 import { BackgroundPoint } from '@/core/components/BackgroundPointsField/types';
 import { getState, useStore } from '@/store';
-import { getControlParams } from '@/utils';
+import { getControlParams } from '@/utils/ui';
 
 // function PlanetParams({ selectedObject }: { selectedObject: Planet }) {
 //   useControls('Selected Object Settings', () => {

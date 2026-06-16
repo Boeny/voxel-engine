@@ -15,3 +15,23 @@ export const BACKGROUND_SHADER_PARAMS: BackgroundShaderParams = {
   uBackgroundToLocalScale: LY_TO_KM,
   uClickPoint: new Vector2(-1, -1),
 };
+
+export const STAR_BIN_PATH = '/assets/stars.dat';
+export const STAR_JSON_PATH = '/assets/stars.json';
+
+export const BINARY_ITEM_LENGTH = 8;
+export const SELECTION_MIN_BRIGHTNESS = 0.1;
+
+export const ATTRIBUTES = [
+  { name: 'position', length: 3 },
+  { name: 'color', length: 3 },
+  { name: 'luminosity', length: 1 },
+  { name: 'radius', length: 1 },
+] as const;
+
+export const ATTR_INDEX = {
+  position: 0,
+  color: 1,
+  luminosity: 2,
+  radius: 3,
+} as const;

@@ -5,7 +5,7 @@ import { Vector3 } from 'three';
 
 import { mouse, preventDefault, setupEvents, setupKeyboardEvents, setupMouseEvents, setupPointerLockEvent } from '@/events';
 import { getState } from '@/store';
-import { getDistanceText, setDOMContent } from '@/utils';
+import { getDistanceText, setDOMContent } from '@/utils/ui';
 import { getDistanceToObject, norm, sub } from '@/utils/vector';
 
 import { PointerLock } from './pointerLock';

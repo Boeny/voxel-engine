@@ -5,7 +5,7 @@ import { Bloom } from '@react-three/postprocessing';
 import { useControls } from 'leva';
 import { BloomEffect } from 'postprocessing';
 
-import { getControlParams } from '../../utils';
+import { getControlParams } from '@/utils/ui';
 
 const BLOOM_PARAMS = {
   intensity: 100,
