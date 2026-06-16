@@ -14,4 +14,6 @@ export const BACKGROUND_SHADER_PARAMS: BackgroundShaderParams = {
   uPixelAngularSize: 0,
   uBackgroundToLocalScale: LY_TO_KM,
   uClickPoint: new Vector2(-1, -1),
+  uSelectedPosition: new Vector3(),
+  uHasSelected: 0,
 };

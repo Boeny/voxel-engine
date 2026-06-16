@@ -4,8 +4,8 @@
   "version": "0.0.6",
   "type": "module",
   "scripts": {
-    "predev": "npm run lint && npm run format && npm run typecheck",
-    "dev": "vite",
+    "check": "npm run lint && npm run format && npm run typecheck",
+    "start": "vite",
     "build": "vite build --outDir ./dist",
     "github-pages": "vite build --outDir ./docs",
     "lint": "eslint ./src --fix",

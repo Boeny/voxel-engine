@@ -1,7 +1,7 @@
 import { useRef } from 'react';
 
 import { ThreeEvent, useFrame } from '@react-three/fiber';
-import { AdditiveBlending, ShaderMaterial, Vector2 } from 'three';
+import { AdditiveBlending, Intersection, Points, Raycaster, ShaderMaterial, Vector2 } from 'three';
 
 type Props = {
   vertexShader: string;
@@ -9,9 +9,10 @@ type Props = {
   uniforms: Record<string, any>;
   attributes: { name: string; data: Float32Array<ArrayBufferLike>; length: number }[];
   onClick: (event: ThreeEvent<MouseEvent>, point: Vector2) => void;
+  raycast?: (this: Points, raycaster: Raycaster, intersects: Intersection[]) => void;
 };
 
-export const PointsCloud = ({ vertexShader, fragmentShader, uniforms, attributes, onClick }: Props) => {
+export const PointsCloud = ({ vertexShader, fragmentShader, uniforms, attributes, onClick, raycast }: Props) => {
   const ref = useRef<ShaderMaterial>(null);
 
   useFrame(() => {
@@ -27,6 +28,7 @@ export const PointsCloud = ({ vertexShader, fragmentShader, uniforms, attributes
     <points
       frustumCulled={false}
       onClick={(e) => onClick(e, new Vector2(e.clientX, e.clientY))}
+      raycast={raycast}
     >
       <bufferGeometry>
         {attributes.map((attr, i) => (

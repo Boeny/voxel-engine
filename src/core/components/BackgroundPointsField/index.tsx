@@ -1,7 +1,7 @@
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
 import { useFrame } from '@react-three/fiber';
-import { PerspectiveCamera, Vector3 } from 'three';
+import { Intersection, PerspectiveCamera, Points, Raycaster, Vector3 } from 'three';
 
 import { getState } from '@/store';
 
@@ -20,8 +20,13 @@ const ATTRIBUTES = [
   { name: 'color', length: 3 },
   { name: 'luminosity', length: 1 },
   { name: 'radius', length: 1 },
-  { name: 'isSelected', length: 1 },
 ] as const;
+const ATTR_INDEX = {
+  position: 0,
+  color: 1,
+  luminosity: 2,
+  radius: 3,
+} as const;
 
 async function loadBinaryFile(url: string): Promise<Float32Array> {
   const response = await fetch(url);
@@ -57,8 +62,7 @@ function getAttributes(
 
     ATTRIBUTES.forEach((attr, attrIndex) => {
       for (let valueIndex = 0; valueIndex < attr.length; valueIndex += 1) {
-        result[attrIndex].data[itemIndex * attr.length + valueIndex] =
-          attr.name === 'isSelected' ? 0 : getValue(attr, itemIndex, valueIndex, offset);
+        result[attrIndex].data[itemIndex * attr.length + valueIndex] = getValue(attr, itemIndex, valueIndex, offset);
       }
 
       offset += attr.length;
@@ -68,6 +72,10 @@ function getAttributes(
   return result;
 }
 
+function getPosition(posData: Float32Array, index: number) {
+  return new Vector3(posData[index * 3], posData[index * 3 + 1], posData[index * 3 + 2]);
+}
+
 // getAttributes(data.length, (attr, itemIndex, valueIndex) => toArray(data[itemIndex][attr.name])[valueIndex]));
 
 export const BackgroundPointsField = () => {
@@ -75,13 +83,61 @@ export const BackgroundPointsField = () => {
   const { backgroundShaderParams: shaderParams } = getState();
   const [attributes, setAttributes] = useState<Attribute[] | null>(null);
   const metaRef = useRef<Record<number, { name: string; spectral_type: string }>>({});
+  const starDirScratch = useRef(new Vector3());
+
+  const getAttributeData = useCallback(
+    (index: number) => {
+      if (!attributes) {
+        return null;
+      }
+
+      return attributes[index].data;
+    },
+    [attributes],
+  );
+
+  const customRaycast = useCallback(
+    function (this: Points, raycaster: Raycaster, intersects: Intersection[]) {
+      const posData = getAttributeData(ATTR_INDEX.position);
+      if (!posData) {
+        return;
+      }
+
+      const count = posData.length / 3;
+      const { backgroundPosition, backgroundShaderParams } = getState();
+      const ray = raycaster.ray;
+
+      const angularThreshold = backgroundShaderParams.uPixelAngularSize * backgroundShaderParams.uMinRadius * 2;
+      const dotThreshold = Math.cos(angularThreshold);
+
+      let bestDot = dotThreshold;
+      let bestIndex = -1;
+
+      for (let i = 0; i < count; i++) {
+        starDirScratch.current
+          .set(posData[i * 3] - backgroundPosition.x, posData[i * 3 + 1] - backgroundPosition.y, posData[i * 3 + 2] - backgroundPosition.z)
+          .normalize();
+
+        const dot = starDirScratch.current.dot(ray.direction);
+        if (dot > bestDot) {
+          bestDot = dot;
+          bestIndex = i;
+        }
+      }
+
+      if (bestIndex >= 0) {
+        intersects.push({ distance: 1e30, point: new Vector3(), index: bestIndex, object: this, face: null });
+      }
+    },
+    [getAttributeData],
+  );
 
   useEffect(() => {
     loadBinaryFile(STAR_BIN_PATH).then((floatArray) => {
       setAttributes(
         getAttributes(
           floatArray.length / BINARY_ITEM_LENGTH,
-          (attr, itemIndex, valueIndex, offset) => floatArray[itemIndex * BINARY_ITEM_LENGTH + valueIndex + offset],
+          (_attr, itemIndex, valueIndex, offset) => floatArray[itemIndex * BINARY_ITEM_LENGTH + valueIndex + offset],
         ),
       );
     });
@@ -111,77 +167,37 @@ export const BackgroundPointsField = () => {
       fragmentShader={frag}
       uniforms={shaderParams}
       attributes={attributes}
+      raycast={customRaycast}
       onClick={(event, _point) => {
+        if (event.index === undefined) {
+          getState().select(null);
+
+          return;
+        }
+
         const meta = metaRef.current[event.index as keyof typeof metaRef.current];
-        console.log(event.index, attributes[0].data[event.index! * BINARY_ITEM_LENGTH], meta);
+
+        const posData = getAttributeData(ATTR_INDEX.position);
+        const radData = getAttributeData(ATTR_INDEX.radius);
+        if (!posData || !radData) {
+          return;
+        }
+        const position = getPosition(posData, event.index);
+
+        shaderParams.uSelectedPosition.copy(position);
+        shaderParams.uHasSelected = 1;
 
         getState().select(
           event.index === undefined
             ? null
             : {
                 name: meta?.name || 'Unknown',
-                position: new Vector3(
-                  attributes[0].data[event.index * BINARY_ITEM_LENGTH],
-                  attributes[0].data[event.index * BINARY_ITEM_LENGTH + 1],
-                  attributes[0].data[event.index * BINARY_ITEM_LENGTH + 2],
-                ),
-                radius: attributes[3].data[event.index * BINARY_ITEM_LENGTH + 3] || 0,
+                position,
+                radius: radData[event.index],
                 type: 'background',
               },
         );
-
-        return;
-
-        // shaderParams.uClickPoint.copy(new Vector2(point.x / window.innerWidth, 1 - point.y / window.innerHeight));
-        // attributes[4].data.set([1], 0);
-
-        // return;
-
-        // const clickPoint = new Vector2((2 * point.x) / window.innerWidth - 1, 1 - (2 * point.y) / window.innerHeight);
-        // raycaster.setFromCamera(clickPoint, camera);
-        // // Настраиваем радиус «чувствительности» клика в мировых единицах
-        // // Подберите значение под ваш масштаб сцены (например, 0.1 или 1.0)
-        // raycaster.params.Points = { threshold: 1.0 };
-
-        // // Ищем пересечения только с объектами Points на сцене
-        // const intersects = raycaster.intersectObjects(scene.children, true);
-
-        // if (intersects.length > 0) {
-        //   // Получаем внутренний индекс точки, по которой кликнули
-        //   const starIndex = intersects[0].index;
-        //   if (starIndex !== undefined) {
-        //     const selectedStar = attributes[starIndex];
-
-        //     // Записываем объект в стор
-        //     getState().select(selectedStar);
-
-        //     // Передаем позицию выбранной звезды в юниформы шейдера
-        //     // Предполагаю, что у вас координаты лежат в star.position (Vector3)
-        //     shaderParams.uClickPoint.copy(selectedStar.position);
-        //     // shaderParams.uIsSelected.value = 1.0; // Включаем подсветку
-        //     return;
-        //   }
-        // }
-
-        // getState().select(null);
       }}
     />
   );
 };
-
-// Создаем кастомный рейкастер с радиусом захвата точки (например, 0.1 или 0.2)
-// const pointsRaycast = (踩, intersects) => {
-//   // Настраиваем чувствительность клика по точкам
-//   踩.raycaster.params.Points.threshold = 0.2;
-//   return THREE.Points.prototype.raycast.call(踩, 踩.raycaster, intersects);
-// };
-
-// // ... внутри вашего компонента:
-// return (
-//   <points
-//     onClick={onPointClick}
-//     raycast={pointsRaycast} // Переопределяем стандартный клик
-//   >
-//     {/* ... геометрия и материал ... */}
-//   </points>
-// );
