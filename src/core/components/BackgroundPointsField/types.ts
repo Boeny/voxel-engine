@@ -29,4 +29,5 @@ export type Attribute = {
   name: string;
   length: number;
   data: Float32Array<ArrayBufferLike>;
+  scale?: number;
 };

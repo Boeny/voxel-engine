@@ -2,7 +2,7 @@ import { useControls } from 'leva';
 import { Effect, BlendFunction } from 'postprocessing';
 import { Uniform } from 'three';
 
-import { getControlParams } from '@/utils';
+import { getControlParams } from '@/utils/ui';
 
 import { shaderUniforms } from '../decorators/shaderUniforms';
 

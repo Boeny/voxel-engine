@@ -9,6 +9,8 @@ import { getState } from '@/store';
 import { setDOMContent, getDistanceText } from '@/utils/ui';
 import { getDistanceToObject, sub, vectorToString } from '@/utils/vector';
 
+import { BACKGROUND_POSITION_SCALE } from '../components/BackgroundPointsField/const';
+
 import {
   applyAcceleration,
   changeRotation,
@@ -66,7 +68,9 @@ export function EditorController() {
       backgroundShaderParams,
     } = getState();
 
-    const moveSpeed = selectedObject ? Math.max(1, sub(backgroundPosition, selectedObject.position).length()) : backgroundSpeed;
+    const moveSpeed = selectedObject
+      ? Math.max(1, sub(backgroundPosition, selectedObject.position).length())
+      : backgroundSpeed * BACKGROUND_POSITION_SCALE;
 
     const moveDir = new Vector3();
     horMovement(camera.quaternion, moveDir);

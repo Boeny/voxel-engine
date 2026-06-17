@@ -29,6 +29,7 @@ void main() {
     float angularRadius = atan(radius / localDistance);
     float pixelRadius = (angularRadius / uPixelAngularSize) * uRadiusMultiplier;
     gl_PointSize = max(pixelRadius, uMinRadius);
+
     // Per-pixel brightness: surface brightness times (star area / rendered disc area), capped at 1
     float fillRatio = min(1.0, 4.0 * pixelRadius * pixelRadius / (gl_PointSize * gl_PointSize));
     float perPixel = luminosity * fillRatio;

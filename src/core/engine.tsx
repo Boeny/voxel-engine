@@ -8,8 +8,9 @@ import { FAR_CULLING, NEAR_CULLING } from '@/const';
 import { getState } from '@/store';
 import { HUD } from '@/ui/hud';
 
-import { BackgroundPointsField } from './components/BackgroundPointsField';
 import { StarSelectionRing } from '../ui/hud/StarSelectionRing';
+
+import { BackgroundPointsField } from './components/BackgroundPointsField';
 import { EditorController } from './controllers/editorController';
 import { PlayerController } from './controllers/playerController';
 import { BloomControls } from './effects/bloom';

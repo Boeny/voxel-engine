@@ -56,7 +56,7 @@ export const BackgroundPointsField = () => {
       setAttributes(
         getAttributes(
           floatArray.length / BINARY_ITEM_LENGTH,
-          (_attr, itemIndex, valueIndex, offset) => floatArray[itemIndex * BINARY_ITEM_LENGTH + valueIndex + offset],
+          (attr, itemIndex, valueIndex, offset) => floatArray[itemIndex * BINARY_ITEM_LENGTH + valueIndex + offset] * (attr.scale || 1),
         ),
       );
     });
@@ -109,6 +109,7 @@ export const BackgroundPointsField = () => {
           return;
         }
         const position = getPosition(posData, event.index);
+        console.log(position);
 
         select({
           name: meta?.name || 'Unknown',
