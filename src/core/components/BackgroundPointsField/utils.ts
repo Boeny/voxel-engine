@@ -46,7 +46,7 @@ export function setSelectionRing(camera: Camera, selectedObject: BackgroundPoint
   camera.getWorldDirection(ringCamDir);
 
   if (dir.dot(ringCamDir) > 0) {
-    dir.multiplyScalar(1000).project(camera);
+    dir.multiplyScalar(1000).project(camera); // > NEAR_CULLING
     el.style.display = 'block';
     el.style.left = `${((dir.x + 1) / 2) * window.innerWidth}px`;
     el.style.top = `${((-dir.y + 1) / 2) * window.innerHeight}px`;

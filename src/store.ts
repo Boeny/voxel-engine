@@ -60,7 +60,7 @@ export const useStore = create<AppState>((set) => ({
   backgroundStartPosition: new Vector3(),
   backgroundPosition: new Vector3(),
   backgroundVelocity: new Vector3(),
-  backgroundSpeed: 2,
+  backgroundSpeed: 50,
   backgroundShaderParams: { ...BACKGROUND_SHADER_PARAMS },
   backgroundData: [],
 

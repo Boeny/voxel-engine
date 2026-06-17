@@ -48,9 +48,13 @@ function SelectedObjectControls() {
 
 export const EditorHUD = () => {
   useControls('Background points params', () =>
-    getControlParams(getState(), {
-      backgroundSpeed: [],
-    }),
+    getControlParams(
+      getState(),
+      {
+        backgroundSpeed: [],
+      },
+      (field, value) => ((getState() as any)[field] = value),
+    ),
   );
   useControls('Background points shader params', () =>
     getControlParams(getState().backgroundShaderParams, {

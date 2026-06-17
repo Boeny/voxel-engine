@@ -81,7 +81,7 @@ export function getDistanceText(km: number): string {
 export function getControlParams<T extends string>(
   object: Record<T, any>,
   params: Partial<Record<T, any[]>>,
-  convert?: (field: T, v: any) => any,
+  onChange?: (field: T, v: any) => any,
 ): Record<string, any> {
   return mapObjectValues(params as Record<T, [number, number, number]>, ({ key: field, value }) => {
     return {
@@ -90,7 +90,7 @@ export function getControlParams<T extends string>(
       max: value[1],
       step: value[2],
       onChange: (newValue: any) => {
-        object[field] = convert ? convert(field, newValue) : newValue;
+        object[field] = onChange ? onChange(field, newValue) : newValue;
       },
       transient: true,
     };
