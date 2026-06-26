@@ -64,7 +64,7 @@ export function applyAcceleration(delta: number, moveDir: Vector3, velocity: Vec
   }
 }
 
-export function changeRotation(delta: number, camera: Camera) {
+export function rotateOnKeys(delta: number, camera: Camera) {
   // Camera roll
   if (keys['KeyQ']) {
     camera.rotateZ(1.5 * delta);

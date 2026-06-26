@@ -66,14 +66,14 @@ export const BackgroundPointsField = () => {
   }, []);
 
   useFrame((state) => {
-    const { backgroundPosition, backgroundVelocity, selectedObject } = getState();
-    shaderParams.uCameraBackgroundPosition.copy(backgroundPosition);
+    const { backgroundPosition, backgroundVelocity, selectedObject, position } = getState();
+    shaderParams.uCameraBackgroundPosition.copy(backgroundPosition).addScaledVector(position, 1 / shaderParams.uBackgroundToLocalScale);
 
     const fov = (state.camera as PerspectiveCamera).fov;
     const fovRadians = (fov * Math.PI) / 180;
     shaderParams.uPixelAngularSize = (2 * Math.tan(fovRadians / 2)) / window.innerHeight;
 
-    setSelectionRing(state.camera, selectedObject, backgroundPosition);
+    setSelectionRing(state.camera, selectedObject, shaderParams.uCameraBackgroundPosition);
 
     backgroundPosition.add(backgroundVelocity);
   });

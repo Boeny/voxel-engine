@@ -29,7 +29,7 @@ export function getAttributes(
   return result;
 }
 
-export function setSelectionRing(camera: Camera, selectedObject: BackgroundPoint | null, backgroundPosition: Vector3) {
+export function setSelectionRing(camera: Camera, selectedObject: BackgroundPoint | null, effectiveCameraBackgroundPosition: Vector3) {
   const el = document.getElementById('selection-ring');
   if (!el) {
     return;
@@ -41,7 +41,7 @@ export function setSelectionRing(camera: Camera, selectedObject: BackgroundPoint
     return;
   }
 
-  const dir = sub(selectedObject.position, backgroundPosition).normalize();
+  const dir = sub(selectedObject.position, effectiveCameraBackgroundPosition).normalize();
   const ringCamDir = new Vector3();
   camera.getWorldDirection(ringCamDir);
 

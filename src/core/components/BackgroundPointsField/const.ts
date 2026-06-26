@@ -1,6 +1,6 @@
 import { Vector2, Vector3 } from 'three';
 
-import { LY_TO_KM } from '@/const';
+import { AU_TO_KM, LY_TO_KM } from '@/const';
 
 import { BackgroundShaderParams } from './types';
 
@@ -10,6 +10,8 @@ export const STAR_JSON_PATH = '/assets/stars.json';
 export const BINARY_ITEM_LENGTH = 8;
 export const SELECTION_MIN_BRIGHTNESS = 0.1;
 export const BACKGROUND_POSITION_SCALE = 10000;
+
+export const LOCAL_MODE_THRESHOLD = ((500 * AU_TO_KM) / LY_TO_KM) * BACKGROUND_POSITION_SCALE;
 
 export const BACKGROUND_SHADER_PARAMS: BackgroundShaderParams = {
   uBrightnessMultiplier: 1e13,

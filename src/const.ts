@@ -1,5 +1,6 @@
 /* eslint-disable import/no-unused-modules */
 export const LY_TO_KM = 9.461e12;
+export const AU_TO_KM = 1.496e8;
 
 // G * M_sun in km³/s² — for Kepler's third law (orbital angular velocity ω = sqrt(GM / r³))
 export const SUN_GM = 1.32712e11;

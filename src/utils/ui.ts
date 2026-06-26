@@ -1,3 +1,5 @@
+import { AU_TO_KM } from '@/const';
+
 import { mapObjectValues } from '.';
 
 function getDistanceForUnits(value: number, units: string): string | undefined {
@@ -46,7 +48,7 @@ export function getDistanceText(km: number): string {
   }
   // mln_km >= 150
 
-  const au = mlnKm / 150;
+  const au = km / AU_TO_KM;
   distance = getDistanceForUnits(au, ' AU');
   if (distance) {
     return distance;
